@@ -1,0 +1,8 @@
+{
+  "name": "bl-sim",
+  "private": true,
+  "description": "Bancada de simulação do BL PROJECT IDLE (ver docs/tecnico/09-build-publicacao-e-simulacao.md)",
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}

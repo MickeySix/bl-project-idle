@@ -1,0 +1,5 @@
+# bancada de simulação: dependências, cópia do jogo e saídas
+dev/sim/node_modules/
+dev/sim/package-lock.json
+dev/sim/new/
+dev/sim/*.txt

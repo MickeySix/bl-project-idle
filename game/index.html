@@ -1,0 +1,547 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>BL PROJECT IDLE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,800;1,800;1,900&family=Manrope:wght@400;500;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="css/style.css?v=687">
+<link rel="stylesheet" href="css/clan.css?v=687">
+<link rel="stylesheet" href="css/rmt.css?v=687">
+<link rel="stylesheet" href="css/gamepass.css?v=687">
+<link rel="stylesheet" href="css/pvp.css?v=687">
+
+</head><body>
+<div class="app" id="app">
+  <header class="topbar">
+    <button type="button" class="account" id="account" aria-label="Abrir perfil">
+      <div class="avatar" id="accAvatar">JG</div>
+      <div class="acc-info">
+        <div class="acc-name" id="accName">Jogador</div>
+        <div class="acc-lv"><span id="accLevel">Conta Nv 1</span><span class="bar"><i id="accXpBar"></i></span></div>
+      </div>
+    </button>
+    <div class="tb-mid" aria-hidden="true"></div>
+    <div class="top-actions">
+      <div class="cur" title="Gold"><span class="coin" aria-hidden="true"></span><b id="resGold">0</b><span class="sr">Gold</span></div>
+      <div class="cur" title="Diamantes"><svg class="gem" viewBox="0 0 24 18" aria-hidden="true"><path d="M0 7 6 1h12l6 6-12 10.5z" fill="#1a7cff"/><path d="M6 1h12l-2 3.5H8z" fill="#e6fbff"/><path d="M0 7 6 1l2 3.5z" fill="#7fe0ff"/><path d="M24 7 18 1l-2 3.5z" fill="#3fb4ff"/><path d="M0 7 8 4.5h8L24 7z" fill="#b4f1ff"/><path d="M8 4.5h8L12 7z" fill="#e9fdff"/><path d="M0 7h6l6 10.5z" fill="#0c49c4"/><path d="M6 7h4l2 10.5z" fill="#1f8dff"/><path d="M10 7h4l-2 10.5z" fill="#3fd0ff"/><path d="M14 7h4l-6 10.5z" fill="#1876f2"/><path d="M18 7h6L12 17.5z" fill="#0a3594"/><path d="M2 7h20" stroke="#f2feff" stroke-width=".9"/><path d="M0 7 6 1h12l6 6-12 10.5z" fill="none" stroke="#03185a" stroke-width=".6" stroke-linejoin="round"/></svg><b id="resDiamonds">0</b><span class="sr">Diamantes</span></div>
+      <button type="button" class="btn btn-hot btn-gem" data-open="buyDiamonds" title="Adicionar Diamantes"><svg class="gem-i" viewBox="0 0 24 18" aria-hidden="true"><path d="M0 7 6 1h12l6 6-12 10.5z" fill="#7fe0ff"/><path d="M6 1h12l-2 3.5H8z" fill="#fff"/><path d="M0 7h24L12 17.5z" fill="#3fb4ff"/><path d="M8 4.5h8L12 17.5z" fill="#c9f6ff"/></svg><span class="gem-t">Adicionar</span><span class="gem-plus" aria-hidden="true">+</span></button>
+      <button type="button" class="tb-ico" id="btnMail" data-open="mail" title="Correio" aria-label="Correios"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="8" width="24" height="17" rx="2.5" fill="#1a2f8a" stroke="#8fc8ff" stroke-width="2"/><path d="M5 10l11 8 11-8" fill="none" stroke="#8fc8ff" stroke-width="2" stroke-linejoin="round"/><circle class="mail-dot" cx="16" cy="18" r="3.2" fill="#ff3f5e" stroke="#ffd0d6" stroke-width="1"/></svg></button>
+      <button type="button" class="tb-ico" data-open="sleep" title="Modo Soneca" aria-label="Soneca"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M20 5a11 11 0 1 0 7 17.5A9 9 0 0 1 20 5z" fill="#ffd23f" stroke="#fff3b0" stroke-width="1.2"/><text x="19" y="15" font-size="7" font-weight="900" fill="#8fc8ff" font-family="sans-serif">z</text><text x="23" y="10" font-size="5.5" font-weight="900" fill="#8fc8ff" font-family="sans-serif">z</text></svg></button>
+      <button type="button" class="tb-ico" id="btnPip" title="Picture-in-Picture (ver o campo numa janelinha)" aria-label="Picture-in-Picture"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="7" width="24" height="18" rx="2.5" fill="none" stroke="#8fc8ff" stroke-width="2"/><rect x="15" y="15" width="10" height="7" rx="1.5" fill="#26c6ff"/></svg></button>
+      <button class="tb-ico btn-gear" id="btnMenu" type="button" aria-label="Central do treinador" title="Central do treinador"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 10h18M7 16h18M7 22h18" stroke="#26c6ff" stroke-width="3" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="tb-led" aria-hidden="true"><span class="tb-glow"><i></i><i></i></span><span class="tb-ring"><i></i><i></i></span></div>
+  </header>
+
+  <main class="layout">
+    <aside class="side side-left">
+      <section class="panel team-panel">
+        <h2 class="panel-h"><button type="button" class="panel-h-btn" data-open-eq title="Abrir Meu time: times salvos e poder do time">Meu time <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2"/></svg></button></h2>
+        <div class="tactic" id="tacticBox" hidden></div>
+        <div id="myTeam"></div>
+      </section>
+      <section class="panel bench-panel" id="myBenchPanel" hidden>
+        <h2 class="panel-h">Reservas</h2>
+        <div id="myBench"></div>
+      </section>
+    </aside>
+
+    <section class="center">
+      <div class="scorebar">
+        <div class="sb-team sb-home"><i class="sb-shirt" aria-hidden="true"></i><span class="sb-name" id="sbHome">SEU TIME</span><span class="sb-stk" id="stkA" hidden></span></div>
+        <div class="sb-score"><b id="sbScore">0 × 0</b><span id="sbClock">1º TEMPO · 0'</span></div>
+        <div class="sb-team sb-away"><span class="sb-stk" id="stkB" hidden></span><span class="sb-name" id="sbAway">ADVERSÁRIO</span><i class="sb-shirt" aria-hidden="true"></i></div>
+      </div>
+      <div class="pitch-wrap" id="pitchWrap">
+        <canvas id="pitch" aria-label="Partida ao vivo"></canvas>
+        <div class="chest-layer" id="chestLayer"></div>
+        <div class="steal-pop" id="stealPop" hidden></div>
+      </div>
+      <div class="dominance" hidden><!-- posse de bola: fora da tela desde a v53 -->
+        <div class="poss" aria-label="Posse de bola">
+          <div class="poss-a" id="possA" style="width:50%"><b id="possApct">50%</b></div>
+          <div class="poss-b" id="possB"><b id="possBpct">50%</b></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side side-right">
+      <section class="panel team-panel">
+        <h2 class="panel-h">Adversário <small id="enemyTag"></small></h2>
+        <div id="enemyCard"></div>
+      </section>
+      <section class="panel bench-panel" id="enemyBenchPanel" hidden>
+        <h2 class="panel-h">Reservas</h2>
+        <div id="enemyBench"></div>
+      </section>
+    </aside>
+  </main>
+
+  <nav class="dock" aria-label="Menu">
+    <div class="dock-sec dock-lead" id="dockLead"></div>
+    <div class="dock-sec dock-team dock-skills">
+      <div class="dock-h"><span>Habilidades</span><b id="dockSkillCount">0/4</b></div>
+      <div class="sk-row" id="dockSkills"></div>
+    </div>
+    <div class="dock-sec dock-menu">
+      <button type="button" data-open="players"><span class="mi mi-img"><img src="img/menu/pc.png" alt=""></span><span class="ml" style="--u:#26c6ff">PC</span></button>
+      <button type="button" data-open="leilao"><span class="mi mi-img"><img src="img/menu/leilao.png" alt=""></span><span class="ml" style="--u:#ff9a2e">Leilão</span></button>
+      <button type="button" data-open="wildcard"><span class="mi mi-img"><img src="img/menu/wildcard.png" alt=""></span><span class="ml" style="--u:#a24dff">Wildcard</span></button>
+      <button type="button" data-open="expedicao"><span class="mi mi-img"><img src="img/menu/expedicao.png" alt=""></span><span class="ml" style="--u:#2ee06a">Expedição</span></button>
+      <button type="button" data-open="diamantes"><span class="mi mi-img"><img src="img/menu/diamantes.png" alt=""></span><span class="ml" style="--u:#26c6ff">Diamantes</span></button>
+      <button type="button" data-rmt-open><span class="mi mi-rmt">R$</span><span class="ml" style="--u:#b8ff3d">RMT</span></button>
+      <button type="button" data-open="diaria"><span class="mi mi-img"><img src="img/menu/diaria.png" alt=""></span><span class="ml" style="--u:#ffc42e">Diária</span></button>
+      <button type="button" data-open="lideres"><span class="mi mi-img"><img src="img/menu/lideres.png" alt=""></span><span class="ml" style="--u:#a24dff">Líderes</span></button>
+      <button type="button" data-clan-open><span class="mi mi-img"><img src="img/menu/guilda.png" alt=""></span><span class="ml" style="--u:#1a6dff">Guilda</span></button>
+      <button type="button" data-open="loja"><span class="mi mi-img"><img src="img/menu/loja.png" alt=""></span><span class="ml" style="--u:#26c6ff">Loja</span></button>
+      <button type="button" data-open="boss"><span class="mi mi-img"><img src="img/menu/boss.png" alt=""></span><span class="ml" style="--u:#ff3f5e">Boss</span></button>
+      <button type="button" data-pvp-open><span class="mi mi-img"><img src="img/menu/pvp.png" alt=""></span><span class="ml" style="--u:#ff3f5e">PvP</span></button>
+      <button type="button" data-open="habilidades"><span class="mi mi-img"><img src="img/menu/habilidades.png" alt=""></span><span class="ml" style="--u:#26c6ff">Habilidades</span></button>
+      <button type="button" data-gp-open><span class="mi mi-img"><img src="img/menu/gamepass.png" alt=""></span><span class="ml" style="--u:#ffc42e">Game Pass</span></button>
+    </div>
+    <button type="button" class="dock-sec dock-map" data-open="pitches" aria-label="Seus mapas">
+      <span class="dm-bg" aria-hidden="true"></span>
+      <span class="dm-top" aria-hidden="true"><svg class="dm-pin" viewBox="0 0 20 24"><path d="M10 1a8 8 0 0 0-8 8c0 6 8 14 8 14s8-8 8-14a8 8 0 0 0-8-8z" fill="#ff3f5e" stroke="#fff" stroke-width="1.4"/><circle cx="10" cy="9" r="3" fill="#fff"/></svg><em class="dm-clock" id="dockMapClock">00:00</em></span>
+      <b id="dockMapName">Mapa 1 · Seleção</b>
+      <span id="dockMapStage">Fase 1-1 · 1×1</span>
+      <small id="dockMapZone">Zona Nv 1–10</small>
+    </button>
+    <button type="button" class="dock-sec dock-chat" data-open="chat"><span class="chat-badge" id="chatBadge">3</span><span class="chat-k">Chat</span><b>Mundial</b></button>
+  </nav>
+</div>
+
+<div class="rail" aria-label="Janelas flutuantes">
+  <button type="button" class="rail-btn" data-float="mochila" title="Mochila" aria-label="Abrir Mochila">
+    <img class="rail-ico" src="img/menu/rail-mochila.svg" alt="" aria-hidden="true">
+    <span class="rail-badge" id="railBag">0</span><span class="rail-name">Mochila</span>
+  </button>
+  <button type="button" class="rail-btn" data-float="mapa" title="Mapa" aria-label="Abrir Mapa">
+    <img class="rail-ico" src="img/menu/rail-mapa.png" alt="" aria-hidden="true">
+    <span class="rail-badge gold" id="railMap">1-1</span><span class="rail-name">Mapa</span>
+  </button>
+  <button type="button" class="rail-btn" data-float="chests" title="Espólios" aria-label="Abrir Espólios">
+    <img class="rail-ico" src="img/menu/rail-chests.png" alt="" aria-hidden="true">
+    <span class="rail-badge gold" id="railChests">0</span><span class="rail-name">Espólios</span>
+  </button>
+  <button type="button" class="rail-btn" data-float="missoes" title="Missões" aria-label="Abrir Missões">
+    <img class="rail-ico" src="img/menu/rail-missoes.png" alt="" aria-hidden="true">
+    <span class="rail-badge" id="railMis">1/20</span><span class="rail-name">Missões</span>
+  </button>
+  <button type="button" class="rail-btn rail-dev" data-float="dev" id="railDev" hidden title="Modo Dev" aria-label="Abrir Modo Dev">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M11 9 4 16l7 7M21 9l7 7-7 7" fill="none" stroke="#B8FF3D" stroke-width="3"/><path d="M18 6l-4 20" stroke="#e8eeff" stroke-width="2.4"/></svg>
+    <span class="rail-name">DEV</span>
+  </button>
+</div>
+<div id="floats"></div>
+<!-- Painel Fase: fora da tela por enquanto; aparece dentro do pop-up Mapas -->
+<div id="wcHome" hidden>
+      <section class="panel wc-panel" id="wcPanel" aria-label="Wildcard">
+        <div class="wc-head"><span class="wc-btn">Wildcard</span><span class="wc-scene" id="wcScene"></span><small class="wc-slots" id="wcSlots"></small></div>
+        <canvas class="wc-canvas" id="wcCanvas" aria-label="Treino no Wildcard"></canvas>
+      </section>
+</div>
+<div id="faseHome" hidden>
+  <section class="panel panel-fase">
+        <h2 class="panel-h">Fase</h2>
+        <div class="obj">
+          <div class="obj-map" id="objMap">Mapa 1 · Seleção · 1×1</div>
+          <button type="button" class="btn train-btn" id="trainBtn" aria-pressed="false">Modo treino</button>
+          <p class="note obj-hint" id="objHint" hidden></p>
+          <div class="obj-stage"><span>Fase</span><b id="objStage">1-1</b><span class="obj-lv" id="objLevels">Nv 1–10</span></div>
+          <div class="stages" id="stages"></div>
+          <label class="toggle"><input type="checkbox" id="repeatToggle"><span>Repetir fase</span></label>
+          <label class="toggle vip-locked" title="Só jogadores VIP podem usar"><input type="checkbox" id="gatoradeToggle" disabled><span>Gatorade/Água</span><span class="vip">VIP</span></label>
+        </div>
+      </section>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <header class="modal-h"><h2 id="modalTitle"></h2><button type="button" class="btn btn-ghost" id="modalClose" aria-label="Fechar">✕</button></header>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- v338 · tela de carregamento entre "Entrar e jogar" e o jogo (ref do Mickey) -->
+<div class="lj" id="ldLoad" hidden>
+  <div class="lj-bg" aria-hidden="true"></div>
+  <section class="lj-card" role="status" aria-live="polite">
+    <img class="lj-logo" src="img/logo-oficial.png" alt="BL Project Idle">
+    <p class="lj-tag">Desperte seu ego. Evolua sem limites.</p>
+    <h2 class="lj-title" id="ljTitle">Sua jornada continua</h2>
+    <div class="lj-bar"><i id="ljFill"></i></div>
+    <ol class="lj-steps" id="ljSteps"><li>Conta</li><li>Servidor</li><li>Treinador</li><li>Equipe</li><li>Campo</li></ol>
+    <p class="lj-msg" id="ljMsg">Verificando conta</p>
+  </section>
+</div>
+<div class="landing" id="landing" hidden>
+  <header class="ld-nav">
+    <div class="ld-logo"><img class="logo-img" src="img/logo-oficial.png" alt="BL Project Idle"></div>
+    <nav class="ld-links" aria-label="Site">
+      <a href="#" class="on" data-ld-page="home">Início</a><a href="#" data-ld-page="ranking">Ranking</a><a href="#" data-ld-page="wiki">Wiki</a><a href="#" data-ld-page="rmt">RMT</a><a href="#" data-ld-page="comunidade">Comunidade</a><a href="#" data-ld-page="termos">Termos</a>
+    </nav>
+    <div class="ld-right">
+      <span class="ld-online"><i></i><b id="ldOnline">1.284</b><small>jogadores<br>online</small></span>
+    </div>
+  </header>
+  <main class="ld-about sb" id="ldAbout">
+    <header class="sb-hero">
+      <p class="ld-kicker">Temporada 1 · Acesso antecipado</p>
+      <h2 class="sb-title"><span>Desperte seu</span> <b>EGO</b></h2>
+      <p class="sb-sub">Evolua sem limites</p>
+      <p class="sb-lead">Um idle de futebol inspirado em Blue Lock. Treine, evolua, roube os melhores jogadores e prove que você é o número 1 do campo.</p>
+      <div class="sb-live"><span class="sb-on"><i></i>Online</span><span><b class="js-online">1.284</b> jogadores</span><span><b id="abAccounts">12.430</b> contas</span><span><b>8</b> servidores</span></div>
+      <div class="sb-go"><button type="button" class="sb-btn" data-ld-auth="login" id="ldEnter">Entrar e jogar <i>›</i></button><button type="button" class="sb-acc" data-ld-auth="account">Minha conta</button></div>
+      <p class="ld-date" id="ldWelcome"></p>
+      <p class="ld-beta"><b>Beta fechado</b>Seu progresso fica salvo só neste navegador (em Configurações dá para exportar o save). Feito para jogar no computador. Ranking, PvP, Guilda, Leilão e Chat ainda usam treinadores de teste. A compra de Diamantes e o RMT entram junto com o Pix.</p>
+    </header>
+
+    <h3 class="sb-all"><span>BL</span> Tudo sobre o BL Project Idle</h3>
+
+    <section class="sb-row" id="ab-jogadores">
+      <div class="sb-img"><img src="img/sobre/funcoes.jpg" alt="" loading="lazy"></div>
+      <div class="sb-card"><h4>Escolha sua função</h4><p>Pivô, alas ou fixo: escolha seu estilo e desenvolva sua posição. Você começa escolhendo um entre até 3 personagens da função.</p>
+        <div class="sb-chips"><span>PIV</span><span>ALO</span><span>ALD</span><span>FIX</span></div></div>
+    </section>
+
+    <section class="sb-row alt" id="ab-partida">
+      <div class="sb-img"><img src="img/sobre/partida7.webp" alt="" loading="lazy"></div>
+      <div class="sb-card"><h4>A IA joga por você</h4><p>Escale, escolha a formação e os itens. Dois tempos de 51 s, 4 gols de diferença encerra e o empate vai para o Gol de Ouro.</p>
+        <div class="sb-chips"><span>51 s por tempo</span><span>Gol de Ouro</span><span>Energia</span></div>
+        <button type="button" class="sb-mini" data-ld-page="wiki" data-wk="partida">Como jogar <i>›</i></button></div>
+    </section>
+
+    <section class="sb-row" id="ab-recompensas">
+      <div class="sb-img"><img src="img/sobre/recompensas7.webp" alt="" loading="lazy"></div>
+      <div class="sb-card"><h4>Roube jogadores</h4><p>Vença partidas e roube os adversários para o seu time: de 24% na fase 1 até 3% no Boss. Toda partida ainda paga XP, Gold e EV, com chance de baú.</p>
+        <div class="sb-chips"><span>Roleta do roubo</span><span>XP e Gold</span><span>Baús</span></div></div>
+    </section>
+
+    <section class="sb-row alt" id="ab-modos">
+      <div class="sb-img"><img src="img/sobre/modos7.webp" alt="" loading="lazy"></div>
+      <div class="sb-card"><h4>Do 1×1 ao 4×4</h4><p>São 10 mapas, do 1×1 ao 4×4, com 4 dificuldades. No 4×4 as formações jogam pedra, papel e tesoura: quem vence o confronto ganha cerca de 11% de vantagem.</p>
+        <div class="sb-chips"><span>1×1</span><span>2×2</span><span>3×3</span><span>4×4</span></div>
+        <button type="button" class="sb-mini" data-ld-page="wiki" data-wk="modos">Ver modos <i>›</i></button></div>
+    </section>
+
+    <section class="sb-row" id="ab-evolucao">
+      <div class="sb-img"><img src="img/sobre/evolucao7.webp" alt="" loading="lazy"></div>
+      <div class="sb-card"><h4>Evolua sem limites</h4><p>Nível até 1000, IVs de 1 a 31 que definem a raridade e EV ganho jogando: 252 num status dá +20%. A corrida tem teto, nunca cresce com o nível.</p>
+        <div class="sb-chips"><span>Nível</span><span>IV</span><span>EV</span><span>Natures</span></div>
+        <button type="button" class="sb-mini" data-ld-page="wiki" data-wk="natures">Ver natures <i>›</i></button></div>
+    </section>
+
+    <section class="sb-row alt" id="ab-bosses">
+      <div class="sb-img"><img src="img/sobre/bosses6.webp" alt="" loading="lazy"></div>
+      <div class="sb-card boss"><h4>Enfrente os Bosses</h4><p>Eles esperam na fase 10 de cada mapa, cada um na sua arena. Vencer paga recompensas ×3 e libera todas as fases do mapa.</p>
+        <div class="sb-chips"><span>Barou</span><span>Nagi</span><span>Bachira</span><span>Sae</span><span>Chigiri</span><span>Kunigami</span><span>Lorenzo</span><span>Rin</span><span>Hugo</span><span>Isagi</span></div></div>
+    </section>
+
+    <section class="sb-rar" id="ab-breve">
+      <h3 class="sb-all"><span>⏳</span> Em breve</h3>
+      <div class="sb-chips big"><span>Contas com servidor</span><span>PvP contra jogadores reais</span><span>Clãs online</span></div>
+    </section>
+  </main>
+
+  <main class="ld-about wk" id="ldWiki" hidden>
+    <header class="wk-head"><p class="ld-kicker">Wiki</p><h2>Como <span>jogar</span></h2><p class="wk-lead">Tudo o que você precisa saber para jogar, separado por assunto.</p></header>
+    <nav class="wk-tabs" aria-label="Assuntos da Wiki">
+      <button type="button" data-wk-tab="partida" class="on">⚽ Partida</button><button type="button" data-wk-tab="modos">🗺️ Modos</button><button type="button" data-wk-tab="formacoes">⬡ Formações</button><button type="button" data-wk-tab="bosses">♛ Bosses</button><button type="button" data-wk-tab="evolucao">📈 Evolução</button><button type="button" data-wk-tab="recompensas">🎁 Recompensas</button><button type="button" data-wk-tab="raridades">★ Raridades</button><button type="button" data-wk-tab="natures">🧬 Natures</button><button type="button" data-wk-tab="quimica">🧪 Química</button><button type="button" data-wk-tab="habilidades">✨ Habilidades</button><button type="button" data-wk-tab="itens">🎒 Itens</button><button type="button" data-wk-tab="missoes">📜 Missões</button>
+    </nav>
+
+    <section class="wk-panel" data-wk-panel="partida">
+      <h3>A partida</h3>
+      <ul class="wk-list">
+        <li><span>🤖</span><b>Partida idle</b><p>A IA joga sozinha: conduz, dribla, tabela, intercepta e chuta. Você escala, escolhe a tática ou a formação, equipa itens e habilidades e usa as bebidas de energia.</p></li>
+        <li><span>⏱️</span><b>Dois tempos de <i id="wkHalf">51</i> s</b><p>Antes de começar há 15 s para escolher a formação (a do adversário fica escondida). Quem abrir <i id="wkMercy">4</i> gols de diferença vence na hora. Empate no fim vai para o Gol de Ouro: quem marcar primeiro leva.</p></li>
+        <li><span>🎯</span><b>Chance de gol</b><p>Parte de 50% e soma 2% para cada ponto de Chute acima do Save do goleiro, entre 5% e 90%. Marcação colada e chute de muito longe tiram precisão; habilidades, itens e Reações Químicas ajudam.</p></li>
+        <li><span>🧤</span><b>Goleiro da conta</b><p id="wkGk">Melhora com o nível da conta. O SB define quanto tempo ele segura a bola.</p></li>
+        <li><span>🥅</span><b>Tiro de meta</b><p>Quando o goleiro segura a bola, o adversário recua e abre espaço. O passe dele não pode ser cortado e quem recebe fica protegido por um instante.</p></li>
+        <li><span>⚡</span><b>Energia</b><p>Toda ação gasta energia: andar, correr, passar, driblar, chutar e dar bote. O Físico decide quanto gasta. Abaixo de 50% os status caem, até ×0,45 com o tanque vazio. Água (+40), Isotônico (+70) e Gatorade (cheia) vêm da Loja; Suco, Água de Coco e Vitamina só caem em baús. Recarga de 30 s entre bebidas.</p></li>
+        <li><span>🧠</span><b>Pausa tática e vestiário</b><p>Uma pausa tática por partida. No intervalo (15 s) dá para trocar com os 2 reservas e mudar a formação, e os dois times descansam um pouco.</p></li>
+        <li><span>🧪</span><b>Química entre personagens</b><p>Algumas duplas se ajudam (Reações Químicas) e outras disputam (Egos em Colisão). Veja a aba Química.</p></li>
+        <li><span>✨</span><b>Time Dourado</b><p>Em 1% das partidas de 4×4 o adversário vem dourado: mais forte, mas paga ×3 de XP e Gold e dobra a chance de roubo.</p></li>
+      </ul>
+    </section>
+
+    <section class="wk-panel" data-wk-panel="modos" hidden>
+      <h3>Modos e mapas</h3>
+      <p class="wk-p">São 10 mapas, cada um com 10 fases; a fase 10 é o Boss do mapa. Os mapas do 1×1 ao 4×4 abrem quando o elenco tem jogadores suficientes, e do Mapa 5 em diante é preciso vencer o Boss do mapa anterior. Depois de vencer o Boss você pode jogar qualquer fase daquele mapa.</p>
+      <ul class="wk-list" id="wkModes"></ul>
+      <h4 class="wk-sub">Dificuldades</h4>
+      <p class="wk-p">Vencer o Boss do Mapa 10 libera a próxima dificuldade. Ela soma níveis a todos os adversários e multiplica XP e Gold.</p>
+      <ul class="wk-list wk-chem" id="wkDiffs"></ul>
+      <h4 class="wk-sub">Fora dos mapas</h4>
+      <ul class="wk-list wk-chem">
+        <li><span>🏃</span><b>Modo treino</b><p>Treino livre, sem adversário e sem relógio, só com o seu goleiro. Não dá XP, Gold nem roubo: serve para ver o time jogar.</p></li>
+        <li><span>⚔️</span><b>Arena PvP</b><p>4×4 contra outros treinadores: Ranqueada com ELO, Copas do dia (grupos e mata-mata, com apostas em Gold) e Multi em dupla.</p></li>
+        <li><span>🏟️</span><b>Ginásios</b><p>8 ginásios com líderes. Vença o líder para tomar o lugar dele e ganhar o bônus do ginásio (Gold, XP ou roubo) até alguém te vencer. Quem perde espera 15 min.</p></li>
+        <li><span>🛡️</span><b>Guilda</b><p>Clãs com até 30 membros, nível com bônus para todos, missões diárias, Raide semanal contra um boss e Guerra contra outro clã.</p></li>
+        <li><span>♛</span><b>Chefes e Raids</b><p>Uma vez por dia, mande 3 jogadores contra o Boss do dia. A partida é simulada às 18h, os pontos entram num ranking e a posição define o baú.</p></li>
+        <li><span>🎟️</span><b>Game Pass</b><p>Temporada mensal de 200 níveis com prêmios grátis e Premium; partidas, vitórias, gols, roubos e missões diárias dão XP do passe.</p></li>
+      </ul>
+    </section>
+
+    <section class="wk-panel" data-wk-panel="formacoes" hidden>
+      <h3>Táticas e formações</h3>
+      <p class="wk-p" id="wkFormLead">No 4×4 cada formação tem um estilo e funciona em pedra, papel e tesoura.</p>
+      <ul class="wk-list" id="wkForms"></ul>
+      <h4 class="wk-sub">Táticas do 1×1 ao 3×3</h4>
+      <ul class="wk-list wk-chem" id="wkTacts"></ul>
+    </section>
+
+    <section class="wk-panel" data-wk-panel="bosses" hidden>
+      <h3>Bosses</h3>
+      <p class="wk-p">Cada mapa termina num Boss. Na arena dele o Boss ganha bônus e o seu time sofre uma penalidade; nos modos maiores ele entra com companheiros. Vencer paga recompensas ×3 e libera todas as fases do mapa.</p>
+      <ul class="wk-list wk-chem wk-boss" id="wkBosses"></ul>
+    </section>
+
+    <section class="wk-panel" data-wk-panel="evolucao" hidden>
+      <h3>Evolução</h3>
+      <ul class="wk-list">
+        <li><span>📈</span><b>Nível</b><p>Jogadores vão até o Nv 1000 e a conta até o Nv 100. O nível aumenta o poder nas disputas, no passe e no chute, mas não deixa ninguém correr mais rápido. No começo de cada modo o XP vem acelerado: a primeira vitória no 1×1 já sobe uns 5 níveis.</p></li>
+        <li><span>🧬</span><b>IV</b><p>Os 6 status de 1 a 31 são a base do jogador e definem a raridade. Não mudam. Cada um tem uma função: Passe acha passes de gênio, Chute chuta mais forte, de mais longe e com curva, Físico gasta menos energia, Velocidade faz tudo mais rápido, Defesa rouba, corta e bloqueia mais, e Drible dribla logo ao receber a bola.</p></li>
+        <li><span>💪</span><b>EV</b><p>Ganho nas partidas (vitória 4, derrota 1, Boss ×3). Até 252 por status e 504 por jogador; 252 num status dá +20%. Resetar custa 300 Gold.</p></li>
+        <li><span>👟</span><b>Velocidade com teto</b><p>A corrida fica entre 170 e 210 conforme IV, nature e itens, em qualquer nível.</p></li>
+        <li><span>🧑‍🏫</span><b>Técnico</b><p>Todos começam com Kyouya Kurogane; outros técnicos vêm da Loja. A raridade do técnico melhora as dicas de formação.</p></li>
+        <li><span>🎨</span><b>Aparência</b><p>Monte o rosto do seu treinador (rosto, cabelo, olhos, boca, barba e acessórios). Ele aparece no perfil e no Ranking do site.</p></li>
+        <li><span>★</span><b>Wildcard</b><p>Três áreas: Cápsulas (quem está fora da escalação treina e ganha XP, mesmo com o jogo fechado, até 8 h), Fazenda (planta materiais) e Bancada (fabrica bebidas e contratos com os materiais).</p></li>
+        <li><span>🧭</span><b>Expedição</b><p>Mande jogadores para 10 regiões, da Várzea à Torre BL PROJECT, por 30 min, 1 h, 3 h ou 8 h, mesmo com o jogo fechado. Voltam com Gold, XP, fichas e chance de itens, e cada região tem sua trilha de progresso.</p></li>
+      </ul>
+    </section>
+
+    <section class="wk-panel" data-wk-panel="recompensas" hidden>
+      <h3>Recompensas e roubo</h3>
+      <ul class="wk-list">
+        <li><span>🎰</span><b>Roubar jogadores</b><p>Só vencendo e com uma Proposta ou um contrato equipado na Mochila (gasta 1 por tentativa). Uma roleta escolhe um adversário e só ele tem o sorteio: 24% na fase 1 até 3% no Boss, +0,5 por gol seu, menor para raridades altas. O roubado chega no Nv 1. Propostas vêm da Loja; os outros contratos são fabricados na Bancada do Wildcard.</p></li>
+        <li><span><i class="ic-coin"></i></span><b>XP, Gold e EV</b><p>Toda partida paga. A derrota paga metade do XP e do Gold; o Boss paga ×3 e as dificuldades acima de Normal multiplicam.</p></li>
+        <li><span>🎁</span><b>Baús</b><p>8% de chance de baú a cada gol seu, 10% no fim de cada vitória (com chance de baú épico e lendário) e baús que caem durante o jogo. Há baús comum, raro, épico e lendário; todos vão para os Espólios.</p></li>
+        <li><span>🎒</span><b>Itens</b><p>Cada jogador veste chuteira, caneleira e camisa; Épicos ou melhores ainda têm o espaço do item do próprio personagem. Veja tudo na aba Itens.</p></li>
+        <li><span>📅</span><b>Diária</b><p>Um prêmio por dia num ciclo de 30 dias, com marcos a cada 5 dias.</p></li>
+        <li><span>📜</span><b>Missões</b><p>200 missões em 20 capítulos de história, cada uma com prêmio. Veja a aba Missões.</p></li>
+      </ul>
+    </section>
+
+    <section class="wk-panel" data-wk-panel="raridades" hidden>
+      <h3>Raridades</h3>
+      <p class="wk-p">A raridade vem da soma dos status. Quanto mais rara, mais pontos e mais difícil de roubar.</p>
+      <div class="rr-list" id="abRarity"></div>
+      <p class="wk-p"><b class="ab-shiny">Shiny</b> é a 7ª raridade: chance de 1 em 400, sempre Lendário, 25 em tudo mais 0 a 4 pontos extras por status.</p>
+    </section>
+
+    <section class="wk-panel" data-wk-panel="natures" id="wk-natures" hidden>
+      <h3>Natures</h3>
+      <p class="wk-p">São 36 natures. Cada uma sobe um status em 10% e desce outro em 10%. As 6 da diagonal são neutras. Na tabela, linha = status que sobe e coluna = status que desce.</p>
+      <div class="nat-grid wk-nat" id="wkNatures"></div>
+      <details class="wk-more"><summary>Ver a tabela completa</summary><div class="ab-table-wrap sb-table"><table class="ab-table ab-nat" id="abNatures"></table></div></details>
+    </section>
+
+    <section class="wk-panel" data-wk-panel="quimica" hidden>
+      <h3>Reações Químicas e Egos em Colisão</h3>
+      <p class="wk-p">Alguns personagens mexem uns com os outros quando jogam no mesmo time. Isso vale do 2×2 para cima, para o seu time e para o adversário, e o efeito dura até o fim da partida. Quando acontece, aparece uma faixa na tela com os nomes dos dois.</p>
+      <ul class="wk-list">
+        <li><span class="wk-vs" data-wk-vs="bachira,isagi"></span><b>Reação Química: um ajuda o outro</b><p>Um jogador é a âncora: quando ele cumpre a meta dele na partida (dribles, roubos, chutes, assistências ou passes para o parceiro), o parceiro ganha um bônus em um status. É sempre de mão única: quem cumpre a meta é quem dá o bônus.</p></li>
+        <li><span class="wk-vs ego" data-wk-vs="isagi,rin"></span><b>Ego em Colisão: os dois disputam</b><p>Dois rivais no mesmo time correm para cumprir a mesma condição. Quem conseguir primeiro rouba uma parte do status do outro: ele sobe e o outro desce. Acontece uma vez por partida em cada dupla.</p></li>
+      </ul>
+      <h4 class="wk-sub">Reações Químicas</h4>
+      <ul class="wk-list wk-chem" id="wkChemList"></ul>
+      <h4 class="wk-sub">Egos em Colisão</h4>
+      <ul class="wk-list wk-chem" id="wkEgoList"></ul>
+      <p class="wk-p">Personagens marcados como "em breve" ainda não estão no jogo; a dupla passa a valer quando eles chegarem.</p>
+    </section>
+    <section class="wk-panel" data-wk-panel="habilidades" id="wk-habilidades" hidden>
+      <h3>Habilidades</h3>
+      <p class="wk-p">As habilidades são do time: escolha até 4 no botão Habilidades. Na partida, quem estiver na melhor posição usa sozinho quando a recarga acaba. Livros repetidos sobem o nível da habilidade (até 10: mais efeito e menos recarga). As raras abrem com o nível da conta; as épicas e lendárias, vencendo Bosses no Inferno e no Tormento.</p>
+      <ul class="wk-list wk-chem" id="wkSkills"></ul>
+    </section>
+    <section class="wk-panel" data-wk-panel="itens" hidden>
+      <h3>Itens</h3>
+      <p class="wk-p">Todos os itens do jogo, separados por categoria, com o que cada um faz e onde conseguir. Cada jogador veste 3 equipamentos (chuteira, caneleira e camisa); jogadores Épicos ou melhores ainda têm um espaço para o item do próprio personagem.</p>
+      <nav class="wk-icats" id="wkItemCats"></nav>
+      <div class="wk-items" id="wkItems"></div>
+    </section>
+    <section class="wk-panel" data-wk-panel="missoes" hidden>
+      <h3>Missões</h3>
+      <p class="wk-p">As Missões contam uma história em 20 capítulos, narrada pelo Jinpachi Ego e pela Anri, que acompanha os 10 mapas do jogo. Abra pelo botão Missões no trilho da direita.</p>
+      <ul class="wk-list">
+        <li><span>📖</span><b>20 capítulos, 10 missões cada</b><p>São 200 missões. Cada uma tem uma falinha curta explicando o que fazer, uma barra de progresso e um prêmio.</p></li>
+        <li><span>1️⃣</span><b>Uma por vez, em ordem</b><p>Só a missão atual conta. O progresso começa a contar quando ela abre; partidas de treino não contam.</p></li>
+        <li><span>⚽</span><b>Tipos de missão</b><p>Vencer partidas, vencer sem sofrer gol, marcar gols, roubar jogadores, vencer Bosses, repetir uma fase específica, vencer com uma tática ou formação, vencer num modo (1×1 a 4×4), vencer por 2 gols ou mais, marcar vários gols numa partida, abrir baús, Expedição, Fazenda, Bancada, Forja, Diária, chegar a um nível e zerar mapas.</p></li>
+        <li><span>🎁</span><b>Prêmios</b><p>Gold sempre, mais um rodízio: Propostas em pacotes de 25 a 50, fichas da Forja, baús, poucos materiais da Fazenda, bebidas e, de vez em quando, um contrato do Wildcard. Missões de Boss dão um baú épico, com chance de vir lendário que cresce a cada capítulo. Missões não dão Diamantes.</p></li>
+        <li><span>🏁</span><b>Fim de capítulo</b><p>A última missão de cada capítulo entrega também o prêmio do capítulo.</p></li>
+        <li><span>🔷</span><b>Master Contract</b><p>O capítulo 20 (500 vitórias, Nv 1000, 1.300 gols, 60 Bosses e os 10 mapas zerados) dá o Master Contract, que rouba com 100% de chance. A outra forma de ganhar é uma chance mínima no baú lendário.</p></li>
+        <li><span>⏭️</span><b>Pode ignorar</b><p>As missões nunca travam o jogo: dá para continuar passando de fase e farmando sem fazer nenhuma. Quem pula só não ganha os prêmios.</p></li>
+      </ul>
+    </section>
+  </main>
+  <main class="ld-about" id="ldRanking" hidden>
+    <header class="ab-head rk-head"><p class="ld-kicker">Poder do time titular</p><h2><span>BL</span> Ranking</h2></header>
+    <div class="rk-board" id="rkTable"></div>
+    <p class="note">Os outros nomes são exemplos até o jogo ter servidor.</p>
+  </main>
+  <main class="cm" id="ldComm" hidden>
+    <header class="cm-head">
+      <div><p class="cm-kick">Central social</p><h2>Sua <span>comunidade</span></h2><p class="cm-lead">Clãs e a comunidade oficial do jogo.</p></div>
+    </header>
+    <div class="cm-stats">
+      <button type="button" class="cm-stat" data-cm="amigos"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.5 4.5-6.5 8-6.5s7 2 8 6.5"/></svg></i><span><b id="cmFriends">0</b><small>Amigos</small><em>Chega com o servidor</em></span></button>
+      <button type="button" class="cm-stat" data-cm="chat"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 10h8M8 13h5"/></svg></i><span><b class="js-online">1.284</b><small>Online agora</small><em>Jogando agora</em></span></button>
+      <button type="button" class="cm-stat" data-cm="clas"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M12 8v8M8.5 11.5h7"/></svg></i><span><b id="cmClan">Sem clã</b><small>Meu clã</small><em>Ver clãs</em></span></button>
+    </div>
+    <div class="cm-grid">
+      <section class="cm-box" id="cm-clas"><header><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M12 8v8M8.5 11.5h7"/></svg></i><div><small>Clãs</small><h3>Sem clã</h3><p>Clãs chegam com o servidor</p></div></header>
+        <p class="cm-txt">Acompanhe missões, membros e o guardião do seu clã. Por enquanto dá para ver os clãs que vão abrir.</p>
+        <ul class="cm-items cm-scroll" id="cmClans"></ul></section>
+    </div>
+    <section class="cm-dc"><div class="cm-dc-art" aria-hidden="true"></div>
+      <div class="cm-dc-txt"><header><i><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.6 5.3A16.6 16.6 0 0 0 15.5 4l-.5 1.1a15.3 15.3 0 0 0-4.6 0L9.9 4a16.5 16.5 0 0 0-4.1 1.3C3.2 9.2 2.5 13 2.9 16.7a16.7 16.7 0 0 0 5 2.6l1.1-1.7a10.8 10.8 0 0 1-1.7-.8l.4-.3a11.8 11.8 0 0 0 10.2 0l.4.3c-.5.3-1.1.6-1.7.8l1.1 1.7a16.6 16.6 0 0 0 5-2.6c.5-4.3-.8-8-3.1-11.4zM9.5 14.5c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2zm5 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2z"/></svg></i><div><small>Discord</small><h3>Comunidade oficial</h3><p>Anúncios, suporte e eventos</p></div></header>
+        <p class="cm-dc-lead">Notícias, eventos, suporte e conversa com a equipe do BL Project Idle.</p>
+        <button type="button" class="cm-claim" id="cmDiscord">Entrar no Discord <b>›</b></button></div></section>
+    <p class="note">Clãs chegam junto com o servidor do jogo.</p>
+  </main>
+  <main class="rmt" id="ldRmt" hidden>
+    <section class="rmt-hero">
+      <div class="rmt-art" aria-hidden="true"></div>
+      <div class="rmt-hero-txt">
+        <p class="rmt-kick"><b>RMT</b><i></i><i></i><i></i></p>
+        <h2><em>Jogadores de verdade.</em><span>Negociação protegida.</span></h2>
+        <p>Compre e venda jogadores com Pix, custódia automática <span>e entrega direto no seu PC.</span></p>
+        <div class="rmt-btns"><button type="button" class="rmt-go" data-rmt-tab="mercado">Explorar mercado <i>›</i></button><button type="button" class="rmt-ghost" data-rmt-tab="vender">Quero vender</button></div>
+        <div class="rmt-pills"><span><b>15 min</b>reserva exclusiva</span><span><b>Pix</b>verificado no servidor</span><span><b>7 dias</b>até liberar o saldo</span></div>
+      </div>
+    </section>
+    <section class="rmt-main" id="rmtMain">
+      <div class="rmt-head">
+        <div><p class="ld-kicker">Compre, venda e acompanhe</p><h3>Seu mercado de jogadores, <span>simples e protegido</span></h3><p class="rmt-sub">Veja todos os detalhes antes de comprar, acompanhe o pagamento e receba seu novo jogador no PC. Para vender, você sempre confirma o preço e quanto vai receber.</p></div>
+        <div class="rmt-tags"><span>Taxa de 10% mostrada antes de anunciar</span><span>Jogador protegido até a entrega</span><span>Saque acompanhado pela equipe</span></div>
+      </div>
+      <nav class="rmt-tabs" aria-label="Mercado RMT"><button type="button" data-rmt-tab="mercado" class="on">Mercado</button><button type="button" data-rmt-tab="vender">Vender</button><button type="button" data-rmt-tab="anuncios">Meus anúncios</button><button type="button" data-rmt-tab="compras">Compras e entregas</button><button type="button" data-rmt-tab="carteira">Carteira</button></nav>
+      <div class="rmt-off"><span aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="3" fill="currentColor"/><path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></span><b>RMT temporariamente desativado</b><p>A equipe ainda não abriu este mercado.</p></div>
+      <section class="rmt-how">
+        <p class="ld-kicker">Passo a passo</p><h3>Como funciona <span>uma negociação</span></h3><p class="rmt-sub">Você acompanha cada etapa dentro do RMT e sempre sabe onde está o jogador.</p>
+        <ol class="rmt-steps">
+          <li><i>01</i><h4>O vendedor cria o anúncio</h4><p>O jogador fica guardado pelo RMT e não pode ser usado em partidas nem vendido em outro lugar enquanto o anúncio estiver ativo.</p></li>
+          <li><i>02</i><h4>O comprador reserva e paga</h4><p>Ao escolher um jogador, o comprador tem 15 minutos para concluir o Pix sem outra pessoa levar o mesmo anúncio.</p></li>
+          <li><i>03</i><h4>O pagamento é confirmado</h4><p>O pedido só avança depois que o pagamento é confirmado. Enquanto isso, o jogador continua protegido.</p></li>
+          <li><i>04</i><h4>O novo dono recebe</h4><p>O jogador chega para o comprador e é enviado ao PC assim que houver espaço.</p></li>
+        </ol>
+      </section>
+      <p class="rmt-terms">Regras completas na seção <a href="#" data-ld-page="termos">Mercado RMT dos Termos de uso</a>.</p>
+    </section>
+  </main>
+  <main class="tm" id="ldTerms" hidden>
+    <header class="tm-hero">
+      <div class="tm-hero-txt">
+        <p class="ld-kicker">Termos</p>
+        <h2>Termos de <span>uso e serviço</span></h2>
+        <p class="tm-lead">As regras do BL Project Idle explicadas de forma direta, para você saber como funcionam sua conta, seus jogadores e seus itens.</p>
+        <div class="tm-meta"><span>Atualizado em 13 de outubro de 2026</span><span>Leitura: 4 minutos</span></div>
+      </div>
+      <aside class="tm-ess">
+        <p class="ld-kicker">Antes de continuar</p>
+        <h3>O essencial em 4 pontos</h3>
+        <ol>
+          <li><b>01</b>Sua conta é pessoal e deve ser mantida segura.</li>
+          <li><b>02</b>Preço e conteúdo dos Diamantes aparecem antes de você confirmar.</li>
+          <li><b>03</b>Diamantes só são entregues depois que o pagamento é confirmado.</li>
+          <li><b>04</b>Seus direitos de consumidor continuam garantidos.</li>
+        </ol>
+      </aside>
+    </header>
+    <div class="tm-body">
+      <nav class="tm-side" aria-label="Nesta página">
+        <p>Nesta página</p>
+        <a href="#" data-tm="tm-resumo" class="on">Resumo rápido</a>
+        <a href="#" data-tm="tm-conta">Conta, idade e segurança</a>
+        <a href="#" data-tm="tm-uso">Uso permitido e conduta</a>
+        <a href="#" data-tm="tm-compras">Compras digitais</a>
+        <a href="#" data-tm="tm-rmt">Mercado RMT</a>
+        <a href="#" data-tm="tm-estorno">Cancelamento e estorno</a>
+        <a href="#" data-tm="tm-entrega">Entrega e disponibilidade</a>
+        <a href="#" data-tm="tm-suporte">Suporte e alterações</a>
+        <a href="#" data-tm="tm-direitos">Direitos e marcas</a>
+      </nav>
+      <div class="tm-main">
+        <p class="tm-note"><b>Regra de transparência</b><span>Este documento deve ser lido junto das informações mostradas em cada oferta. Se houver conflito, vale a condição mais favorável garantida pela lei aplicável.</span></p>
+        <section class="tm-sec" id="tm-resumo"><header><i>01</i><div><small>Comece por aqui</small><h3>Resumo rápido</h3></div></header>
+          <div class="tm-in"><p>Ao criar uma conta, entrar no jogo ou usar este site, você aceita estes termos. Eles existem para manter o jogo justo, proteger as contas e deixar claro o que acontece com o seu progresso.</p>
+          <div class="tm-cards"><div><h4>Informação antes da compra</h4><p>Você vê o pacote, a quantidade de Diamantes, o preço e a forma de pagamento antes de confirmar.</p></div><div><h4>Registro da operação</h4><p>Pedidos, pagamentos e entregas ficam ligados à conta que fez a compra.</p></div><div class="w"><h4>Direitos preservados</h4><p>Nenhuma regra desta página reduz direitos que a lei garante a você.</p></div></div></div></section>
+        <section class="tm-sec" id="tm-conta"><header><i>02</i><div><small>Seu acesso</small><h3>Conta, idade e segurança</h3></div></header>
+          <div class="tm-in"><div class="tm-cards"><div><h4>Conta pessoal</h4><p>Use um nome de verdade para você, mantenha a senha em segredo e não venda, empreste ou compartilhe a conta. O progresso é responsabilidade do dono.</p></div><div><h4>Menores de idade</h4><p>Quem é menor de idade deve jogar com a autorização e o acompanhamento de um responsável.</p></div><div><h4>Salvo no navegador</h4><p>Por enquanto a conta fica só neste navegador. Limpar os dados ou trocar de aparelho apaga o progresso até o jogo ter servidor.</p></div><div><h4>Nome e tag</h4><p>Nada de nomes ofensivos ou que imitem outros jogadores; eles podem ser trocados ou removidos.</p></div></div></div></section>
+        <section class="tm-sec" id="tm-uso"><header><i>03</i><div><small>Jogo justo</small><h3>Uso permitido e conduta</h3></div></header>
+          <div class="tm-in"><p>Você pode jogar, deixar o time jogando sozinho e participar da comunidade respeitando os outros jogadores.</p>
+          <div class="tm-rules"><div class="ok"><b>Permitido</b><span>Jogar no modo idle, usar o Modo treino, a Expedição, a Wildcard e os recursos que o próprio jogo oferece.</span></div><div class="no"><b>Não permitido</b><span>Explorar falhas, alterar o save ou o código, usar programas externos, scripts ou automações de fora do jogo.</span></div><div class="no"><b>Não permitido</b><span>Assédio, ameaças, discurso de ódio, fingir ser outra pessoa ou tentar entrar na conta de outro jogador.</span></div></div>
+          <p>Quem quebrar essas regras pode ter a conta suspensa, a vantagem removida ou o progresso reiniciado.</p></div></section>
+        <section class="tm-sec" id="tm-compras"><header><i>04</i><div><small>Loja e pacotes</small><h3>Compras digitais</h3></div></header>
+          <div class="tm-in"><div class="tm-steps"><div><i>1</i><p><b>Revise</b>Confira pacote, quantidade, preço e conta de destino.</p></div><em aria-hidden="true">→</em><div><i>2</i><p><b>Pague</b>Use o pagamento seguro mostrado na tela, como Pix ou cartão.</p></div><em aria-hidden="true">→</em><div><i>3</i><p><b>Receba</b>Os Diamantes entram na conta depois que o pagamento é confirmado.</p></div></div>
+          <div class="tm-txt"><h4>O que você está comprando</h4><p>Diamantes, pacotes e outros benefícios são conteúdos digitais ligados à conta indicada no pedido. Eles não são dinheiro, não rendem juros e não podem ser sacados nem trocados por dinheiro, exceto quando um sistema oficial do jogo, como o Mercado RMT, disser o contrário.</p>
+          <h4>Pagamento e confirmação</h4><p>A loja pode oferecer Pix e cartão, conforme a disponibilidade. Criar o pedido não significa que o pagamento foi concluído: o conteúdo só é liberado depois da confirmação do provedor de pagamento e da conferência do valor.</p>
+          <h4>Preços e promoções</h4><p>Vale o preço mostrado no resumo logo antes do pagamento. Ofertas podem ter prazo, quantidade ou público limitados, sempre informados na própria oferta.</p>
+          <h4>Gold e itens</h4><p>Gold é ganho jogando e compra itens da Loja, como Água e Gatorade. Ele não pode ser comprado nem vendido por dinheiro.</p></div></div></section>
+        <section class="tm-sec" id="tm-rmt"><header><i>05</i><div><small>Negociação entre treinadores</small><h3>Mercado RMT</h3></div></header>
+          <div class="tm-in"><p>O Mercado RMT é o canal oficial para compra e venda de jogadores entre treinadores. O nome, os atributos e o preço mostrados na ficha fazem parte da oferta.</p>
+          <div class="tm-stats"><div><b>15 min</b><h4>Reserva protegida</h4><p>Ao iniciar uma compra, o anúncio fica reservado enquanto o comprador conclui o pagamento.</p></div><div><b>10%</b><h4>Taxa do vendedor</h4><p>A taxa é calculada e mostrada antes da publicação do anúncio.</p></div><div><b>7 dias</b><h4>Período de segurança</h4><p>O valor da venda passa pelo prazo informado antes de ficar disponível para o vendedor.</p></div><div><b>PC</b><h4>Entrega protegida</h4><p>O jogador comprado fica guardado até ser enviado a um PC com espaço.</p></div></div>
+          <div class="tm-rules"><div class="no"><b>Não permitido</b><span>Vender Diamantes por dinheiro real.</span></div></div>
+          <p>O vendedor deve possuir legitimamente o jogador anunciado. Durante o anúncio, o jogador fica sob custódia do sistema e não pode ser usado em outra operação. Limites de preço, saque e tarifas adicionais aparecem na tela antes da confirmação correspondente.</p></div></section>
+        <section class="tm-sec" id="tm-estorno"><header><i>06</i><div><small>Se algo mudar</small><h3>Cancelamento, arrependimento e estorno</h3></div></header>
+          <div class="tm-in"><div class="tm-big"><b>7 dias</b><p><strong>Direito de arrependimento</strong>Nas hipóteses previstas no artigo 49 do Código de Defesa do Consumidor, a desistência pode ser pedida em até sete dias da compra ou do recebimento, sem precisar de justificativa.</p></div>
+          <div class="tm-txt"><p>O pedido deve ser feito por um canal oficial. Se os Diamantes já tiverem sido entregues, a equipe pode bloquear temporariamente o saldo e a operação apenas para conferir e fazer a devolução com segurança. Isso não reduz direitos obrigatórios do consumidor.</p>
+          <p>Compras não reconhecidas devem ser informadas rapidamente. Evite gastar ou usar os Diamantes enquanto a análise estiver aberta. Diamantes já gastos no jogo são considerados na análise, conforme a lei.</p>
+          <p>Não use a contestação no banco ou no cartão no lugar do suporte para uma dúvida comum. Em caso de fraude ou compra não reconhecida, fale também com o provedor de pagamento pelos canais oficiais.</p></div>
+          <div class="tm-chips"><a href="https://www.planalto.gov.br/ccivil_03/leis/l8078compilado.htm" target="_blank" rel="noopener">Código de Defesa do Consumidor</a><a href="https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2013/decreto/d7962.htm" target="_blank" rel="noopener">Decreto do Comércio Eletrônico</a></div></div></section>
+        <section class="tm-sec" id="tm-entrega"><header><i>07</i><div><small>Recompensas e pedidos</small><h3>Entrega e disponibilidade</h3></div></header>
+          <div class="tm-in"><div class="tm-cards"><div><h4>Entrega dos Diamantes</h4><p>Os Diamantes comprados entram na conta logo após a confirmação do pagamento. Se não chegarem, fale com o suporte informando o pedido.</p></div><div><h4>Recompensas do jogo</h4><p>Recompensas de partida, Expedição, Boss e Diária entram na conta quando aparecem na tela.</p></div><div class="w"><h4>Fora do ar</h4><p>O site pode parar para manutenção. O jogo está em desenvolvimento e pode mudar, sempre com aviso antes quando uma mudança afetar o que você comprou.</p></div></div></div></section>
+        <section class="tm-sec" id="tm-suporte"><header><i>08</i><div><small>Fale com a gente</small><h3>Suporte e alterações</h3></div></header>
+          <div class="tm-in"><div class="tm-cards"><div><h4>Canais oficiais</h4><p>Dúvidas, bugs e sugestões vão pelos canais oficiais da Comunidade.</p></div><div><h4>Atualizações</h4><p>Estes termos podem mudar conforme o jogo cresce. A data no topo mostra a última versão, e continuar jogando depois dela vale como aceite.</p></div></div></div></section>
+        <section class="tm-sec" id="tm-direitos"><header><i>09</i><div><small>Obra original</small><h3>Direitos e marcas</h3></div></header>
+          <div class="tm-in"><p>O BL Project Idle é inspirado na obra <b>Blue Lock</b> e não tem vínculo oficial com ela. Todos os direitos da obra pertencem aos seus respectivos donos.</p>
+          <div class="tm-cards"><div class="w"><h4>Marcas de terceiros</h4><p>Nomes, personagens e marcas citados pertencem aos seus respectivos donos e são usados apenas como referência à obra.</p></div></div></div></section>
+      </div>
+    </div>
+  </main>
+  <footer class="ld-foot">
+    <p class="ld-foot-a"><b>BL PROJECT IDLE</b> · Jogo de fã. · <a href="#" data-ld-page="wiki">Wiki do jogo</a> · <a href="#" data-ld-page="termos">Termos de uso</a></p>
+    <p class="ld-foot-b">Inspirado na obra <b>BLUE LOCK</b>, sem vínculo oficial. Todos os direitos da obra pertencem aos seus respectivos donos.</p>
+    <p class="ld-foot-c">Direitos autorais © 2026 BL Project Idle. O uso deste site significa que você concorda com os <a href="#" data-ld-page="termos">Termos de uso</a>.<br>Blue Lock e seus personagens pertencem aos seus respectivos detentores. Todas as logos, marcas registradas e nomes comerciais usados aqui são de propriedade de seus respectivos proprietários.</p>
+  </footer>
+  <div class="ld-auth" id="ldAuth" hidden>
+    <form class="ld-auth-box" id="ldForm" autocomplete="off">
+      <button type="button" class="ld-x" id="ldAuthClose" aria-label="Fechar">✕</button>
+      <div class="ld-tabs"><button type="button" data-ld-tab="create">Criar conta</button><button type="button" data-ld-tab="login">Entrar</button></div>
+      <label class="name-field"><span>Usuário</span><input id="ldUser" type="text" maxlength="16" placeholder="3 a 16 caracteres" autocomplete="username"></label>
+      <label class="name-field"><span>Senha</span><input id="ldPass" type="password" maxlength="40" placeholder="Mínimo 4 caracteres" autocomplete="current-password"></label>
+      <label class="name-field" id="ldPass2Wrap"><span>Confirmar senha</span><input id="ldPass2" type="password" maxlength="40" autocomplete="new-password"></label>
+      <p class="ld-err" id="ldErr"></p>
+      <button type="submit" class="btn btn-hot" id="ldSubmit">Criar conta</button>
+      <p class="note">Protótipo: a conta fica salva só neste navegador. Contas de verdade, que funcionam em qualquer aparelho, chegam quando o jogo tiver servidor.</p>
+    </form>
+  </div>
+</div>
+
+<div class="start" id="start" hidden>
+  <div class="start-box">
+    <div class="start-logo"><img class="logo-img" src="img/logo-oficial.png" alt="BL Project Idle"> <small class="build" id="buildStart"></small></div>
+    <h1>Escolha sua função</h1>
+    <div class="start-fields">
+      <label class="name-field"><span>Seu nome</span><input id="startName" type="text" maxlength="18" placeholder="Mínimo 3 caracteres" autocomplete="off" required></label>
+      <label class="name-field tag-field"><span>Tag do time</span><input id="startTag" type="text" maxlength="4" placeholder="Até 4 letras" autocomplete="off" autocapitalize="characters" required></label>
+    </div>
+    <p class="start-hint" id="startHint"></p>
+    <div class="roles" id="roles"></div>
+    <div class="role-confirm" id="roleConfirmBox" hidden><button type="button" class="btn btn-hot" id="roleConfirm" data-confirm-role="1">Confirmar</button></div>
+    <div class="reveal" id="reveal" hidden></div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script src="js/config.js?v=687"></script>
+<script src="js/accounts.js?v=687"></script>
+<script src="js/database.js?v=687"></script>
+<script src="js/players.js?v=687"></script>
+<script src="js/engine.js?v=687"></script>
+<script src="js/game.js?v=687"></script>
+<script src="js/ui.js?v=687"></script>
+<script src="js/clan.js?v=687"></script>
+<script src="js/rmt.js?v=687"></script>
+<script src="js/gamepass.js?v=687"></script>
+<script src="js/pvp.js?v=687"></script>
+</body></html>
