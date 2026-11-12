@@ -23,8 +23,9 @@ window.BL = window.BL || {};
 
   // ---------- prêmios ----------
   function rewards(l, t) { const S = P().special[t === "f" ? "free" : "prem"]; if (S[l]) return S[l];
-    const r = (t === "f" ? P().free : P().prem)[l % 10], k = 1 + 0.5 * Math.floor((l - 1) / 50);
-    return [r.k === "chest" ? r : { ...r, n: Math.round(r.n * k) }]; }
+    const r = (t === "f" ? P().free : P().prem)[l % 10], k = P().grow ? 1 + (l - 1) / P().grow : 1 + 0.5 * Math.floor((l - 1) / 50); // v706: cresce aos poucos
+    if (r.k === "chest") { const up = ["padrao", "azul", "epico", "lendario"], i = up.indexOf(r.id); return [P().chestUp && l >= P().chestUp && i >= 0 && i < 3 ? { ...r, id: up[i + 1] } : r]; } // v706: baú sobe um degrau na 2ª metade
+    return [{ ...r, n: Math.round(r.n * k) }]; }
   const itemDef = (k) => (C.SUPPLIES && C.SUPPLIES[k]) || (C.CONSUMABLES && C.CONSUMABLES[k]) || null;
   const IMG = ["agua", "isotonico", "gatorade", "suco", "coco", "vitamina", "pr-basica", "pr-forte", "pr-elite", "pr-bluelock"];
   const CH_C = { padrao: "#9fb2d8", azul: "#3f9bff", epico: "#b06bff", lendario: "#ffd23f" };

@@ -79,6 +79,8 @@ window.BL = window.BL || {};
     teamName() { return this.state.teamName || this.state.name; }, // v288: sem " FC" automático
     // Tag do time (até 4 letras). Saves antigos sem Tag usam as 3 primeiras letras do nome.
     teamTag() { return this.state.teamTag || BL.cleanTag(this.state.name).slice(0, 3) || "BL"; },
+    titleVal(t) { const s = this.state, ca = s.career || {}; return t.k === "dex" ? Object.keys(this.dex()).length : t.k === "boss" ? (s.progress.bossWins || 0) : ca[t.k] || 0; }, // v708 (Mickey): títulos
+    useTitle(id) { const t = (C.TITLES || []).find((x) => x.id === id); if (!t || this.titleVal(t) < t.n) return false; this.state.teamName = t.name; this.save(); this.emit("teamName"); return true; },
     renameCost() { return (this.state.teamRenames || 0) < C.TEAM_RENAME_FREE ? 0 : C.TEAM_RENAME_DIAMONDS; },
     // Troca o nome e/ou a Tag do time: a primeira troca é grátis, as outras custam Diamantes
     setTeamName(v, t) {
@@ -112,7 +114,7 @@ window.BL = window.BL || {};
       }
       return list;
     },
-    mapUnlocked(i) { return this.dev || (this.state.roster.filter((p) => !this.isAway(p.uid)).length >= C.MAPS[i].size && (i < 4 || this.mapEverCleared(i - 1))); }, // v536: mapas 5 a 10 abrem vencendo o Boss do anterior
+    mapUnlocked(i) { return this.dev || (this.state.roster.filter((p) => !this.isAway(p.uid)).length >= C.MAPS[i].size && (i < 1 || this.mapEverCleared(i - 1) || i <= (this.state.modeMax || 0))); }, // v689 (Mickey): todo Ato abre só vencendo o Boss do anterior (antes só os mapas 5 a 10, v536); modeMax = quem já jogava o modo antes da regra continua
     mapEverCleared(i) { const c = this.state.progress.cleared || {}; return C.DIFFICULTIES.some((d, k) => c[this.clearKey(i, k)]); },
     tactics(size = this.map.size) {
       const base = C.TACTICS[size] || C.TACTICS[1];
@@ -133,7 +135,11 @@ window.BL = window.BL || {};
       for (const ch of String(team)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
       return list[h % list.length];
     },
+    // v703 (Mickey) · 2×2 e 3×3: quantos jogam fora do setor natural do personagem (Fixo/Ala Def = defesa, Ala Of/Pivô = ataque) com essa tática
+    tacMiss(list, tac, mine) { const r = this.rolesFor(list, tac, mine); return list.reduce((a, p, i) => a + ((r[i] === "atk") !== (p.position === "atacante" || p.position === "alaof") ? 1 : 0), 0); },
+    tacFits(tac) { const n = this.map && this.map.size; if (!C.SMALL_FIT || !tac || (n !== 2 && n !== 3)) return false; const ps = this.lineup().map((u) => this.player(u)).filter(Boolean).slice(0, n); if (ps.length < n) return false; const ts = this.tactics(), mm = ts.map((t) => this.tacMiss(ps, t, true)); return this.tacMiss(ps, tac, true) === Math.min(...mm); },
     pickEnemyTactic(team) {
+      { const n = this.map && this.map.size, en = this.enemies; if (C.SMALL_FIT && (n === 2 || n === 3) && en && en.length >= n) { const ts = this.stockTactics(), l = en.slice(0, n), best = ts.reduce((b, t) => (this.tacMiss(l, t, false) < this.tacMiss(l, b, false) ? t : b), ts[0]); return Math.random() < C.ENEMY_PREF_CHANCE ? best : U.pick(ts); } } // v703: o adversário joga no estilo dos jogadores dele
       const pref = this.prefTactic(team), rest = this.stockTactics().filter((t) => t !== pref);
       return Math.random() < C.ENEMY_PREF_CHANCE || !rest.length ? pref : U.pick(rest);
     },
@@ -223,7 +229,9 @@ window.BL = window.BL || {};
       if (!this.mapUnlocked(i)) return false;
       const pr = this.state.progress;
       if ((this.state.modeMax || 0) < i) this.state.modeMax = i;
-      pr.map = i; pr.stage = stage; pr.reach = stage; pr.runSteals = 0;
+      const rb = pr.reachBy || (pr.reachBy = {}); rb[this.clearKey(pr.map, this.diff())] = Math.max(pr.reach || 1, pr.stage); // v689 (Mickey): cada Ato lembra até onde você chegou; voltar não recomeça da fase 1
+      const back = arguments.length < 2 ? rb[this.clearKey(i, this.diff())] || 1 : stage;
+      pr.map = i; pr.stage = arguments.length < 2 ? back : stage; pr.reach = Math.max(back, pr.stage); pr.runSteals = 0;
       this.save();
       clearTimeout(this.nextT);
       this.startMatch();
@@ -274,7 +282,8 @@ window.BL = window.BL || {};
     mailClaim(id) {
       const s = this.state, m = this.mail().find((x) => x.id === id); if (!m || !m.gift || m.claimed) return false;
       s.gold += m.gift.gold || 0; s.diamonds = (s.diamonds || 0) + (m.gift.diamonds || 0);
-      s.mail.find((x) => x.id === id).claimed = true; this.save(); this.emit("resources"); return true;
+      { const c = this.cons(); Object.entries(m.gift.items || {}).forEach(([k, n]) => { c[k] = (c[k] || 0) + n; }); } // v690: itens da Mochila no anexo
+      s.mail.find((x) => x.id === id).claimed = true; this.save(); this.emit("resources"); this.emit("cons"); return true;
     },
     devGrantAll() {
       const s = this.state; if (!this.dev || !s) return;
@@ -293,9 +302,17 @@ window.BL = window.BL || {};
     startSkillCd(i, sec) { const now = Date.now(); this.skillCd[i] = { start: now, end: now + sec * 1000 }; this.emit("skills"); },
     // v623 (Mickey) · habilidades: livros na biblioteca (state.skillLib { id: { lv } }); cada habilidade fica em 1 jogador por vez; livro repetido sobe o nível
     skNeed(id) { const n = (C.SKILL_UNLOCK_LV || {})[id]; return n && !this.dev && this.state.account.level < n ? n : 0; }, // v652 (Mickey): nível da conta que libera a habilidade (0 = já liberada)
-    skNeedClear(id) { const c = (C.SKILL_UNLOCK_CLEAR || {})[id]; return c && !this.dev && !(this.state.progress.cleared || {})[this.clearKey(c[0], c[1])] ? c : null; }, // v653 (Mickey): [mapa, dificuldade] do Boss que ainda falta vencer (null = liberada)
-    skLock(id) { const n = this.skNeed(id), c = this.skNeedClear(id), m = c && C.MAPS[c[0]]; return n ? `libera no Nv ${n} da conta` : c ? `libera vencendo o Boss do Ato ${c[0] + 1} (${m.size}v${m.size}) no ${C.DIFFICULTIES[c[1]].name}` : ""; }, // v653: texto da carta travada
-    skLib() { const s = this.state; if (!s.skillLib) s.skillLib = {}; const U0 = C.SKILL_UNLOCK_LV || {}, U1 = C.SKILL_UNLOCK_CLEAR || {}; Object.keys(C.SKILL_DEF || {}).forEach((id) => { if (!s.skillLib[id] && !this.skNeed(id) && !this.skNeedClear(id) && (this.dev || C.SKILL_FREE || U0[id] || U1[id])) s.skillLib[id] = { lv: 1 }; });
+    skNeedClear(id) { const c = (C.SKILL_UNLOCK_CLEAR || {})[id]; return c && !this.dev && !(this.state.skillBuy || {})[id] && !(this.state.progress.cleared || {})[this.clearKey(c[0], c[1])] ? c : null; },
+    skNeedChest(id) { const U2 = C.SKILL_UNLOCK_CHEST; return !!(U2 && U2.ids.includes(id) && !this.dev && !(this.state.skillChest || {})[id]); }, // v694 (Mickey): lendária só de baú
+    skBuy(id) { // v694: épica travada comprada com Diamantes
+      const s = this.state, d = C.SKILL_DEF[id], K = C.SKILL_DIA_PRICE; if (!d || !K || !this.skNeedClear(id)) return { ok: false, msg: "Habilidade indisponível." };
+      if ((s.diamonds || 0) < K) return { ok: false, msg: `Diamantes insuficientes: ${d.name} custa ${K} ◆.` };
+      s.diamonds -= K; (s.skillBuy || (s.skillBuy = {}))[id] = 1; this.skLib(); this.save(); this.emit("gold"); this.emit("skills"); return { ok: true, msg: `${d.name} liberada!` };
+    }, // v653 (Mickey): [mapa, dificuldade] do Boss que ainda falta vencer (null = liberada)
+    skLock(id) { const n = this.skNeed(id), c = this.skNeedClear(id), m = c && C.MAPS[c[0]]; return n ? `libera no Nv ${n} da conta` : this.skNeedChest(id) ? `vem no Baú Lendário (${Math.round(C.SKILL_UNLOCK_CHEST.p.lendario * 100)}% por baú; no Épico ${Math.round(C.SKILL_UNLOCK_CHEST.p.epico * 100)}%)` : c ? `${C.SKILL_DIA_PRICE} ◆ ou vencendo o Boss do Ato ${c[0] + 1} (${m.size}v${m.size}) no ${C.DIFFICULTIES[c[1]].name}` : ""; }, // v653: texto da carta travada
+    skLib() { const s = this.state; if (!s.skillLib) s.skillLib = {}; const U0 = C.SKILL_UNLOCK_LV || {}, U1 = C.SKILL_UNLOCK_CLEAR || {}, U2 = (C.SKILL_UNLOCK_CHEST || {}).ids || [];
+      U2.forEach((id) => { if (s.skillLib[id] && !this.dev) (s.skillChest || (s.skillChest = {}))[id] = 1; }); // v694: quem já tinha a lendária pela regra antiga continua com ela
+      Object.keys(C.SKILL_DEF || {}).forEach((id) => { if (!s.skillLib[id] && !this.skNeed(id) && !this.skNeedClear(id) && !this.skNeedChest(id) && (this.dev || C.SKILL_FREE || U0[id] || U1[id] || U2.includes(id))) s.skillLib[id] = { lv: 1 }; });
       Object.keys(C.SKILL_DEF || {}).forEach((id) => { if ((this.skNeed(id) || this.skNeedClear(id)) && s.skillLib[id] && s.skillLib[id].lv <= 1) { delete s.skillLib[id]; if (s.skills) s.skills = s.skills.map((x) => (x && x.id === id ? null : x)); } }); return s.skillLib; }, // v652: save antigo com a rara liberada de graça antes do nível volta a ficar travado
     skRoll(w) { const r = U.weighted(Object.entries(w).map(([v, x]) => ({ v, w: x }))), ids = Object.keys(C.SKILL_DEF).filter((id) => C.SKILL_DEF[id].rar === r); return U.pick(ids.length ? ids : Object.keys(C.SKILL_DEF)); },
     skBook(id) {
@@ -427,6 +444,9 @@ window.BL = window.BL || {};
       let mine = this.activePlayers();
       const size = this.map.size;
       if (s.training) return this.startTraining(mine);
+      { const F = C.XP_RULE && C.XP_RULE.fast; if (F && F.sync && s.progress.map < F.maps) { // v692 (Mickey): nos mapas rápidos ninguém entra abaixo do nível da fase (roubado chega no Nv 1 e acompanha o time); contra o Boss todos entram no nível dele
+        const mp = this.map, st = s.progress.stage, to = Math.min(C.PLAYER_MAX_LEVEL, st === C.STAGES_PER_MAP && mp.boss ? mp.levelMax : Math.round(mp.levelMin + (st - 1) * (mp.levelMax - mp.levelMin + 1) / C.STAGES_PER_MAP));
+        mine.forEach((p) => { if (p && !p.temp && p.level < to && (s.progress.map === 0 || p.level >= mp.levelMin - 10)) { p.level = to; p.xp = 0; } }); } } // v693: do 2º Ato em diante só acompanha quem já veio do Ato anterior; o novato é escolhido na janela "Novo Ato" (actPick)
       this.enemies = [];
       for (let i = 0; i < size; i++) this.enemies.push(BL.makeEnemy(s.progress.map, s.progress.stage, this.enemies.map((e) => e.charId), i > 0));
       // v155: o adversário também tem 2 reservas (por enquanto só aparecem no card; no PvP o outro jogador vai usar as dele)
@@ -470,7 +490,7 @@ window.BL = window.BL || {};
         edge: size === 4 ? this.atkEdge(this.myTactic, this.enemyTactic) : [false, false], atk: size === 4 ? [this.myAtk(), this.enemyAtk] : null, // v597
         gk: [gk, gk],
         arena: boss ? this.arenaNow() : null, // v558: Mini Boss do Prólogo com buff menor
-        pitch: boss ? "estadio" : this.pitchId(), // v312: o Boss joga na arena dele (Estádio)
+        pitch: boss ? (!this.enemies[0].mini && (C.BOSS_HOME || {})[this.enemies[0].charId]) || "estadio" : this.pitchId(), // v312: o Boss joga na arena dele · v693: no campo da casa dele (C.BOSS_HOME)
         speed: boss ? C.BOSS_SPEED : C.GAME_SPEED,
         onEvent: (type, data) => this.onMatchEvent(type, data),
       });
@@ -526,6 +546,7 @@ window.BL = window.BL || {};
     useCons(uid, id, auto = false) {
       const e = this.healEnt(uid), it = C.CONSUMABLES[id], c = this.cons();
       if (!e || !it || !c[id] || (this.healWait(e) > 0 && !this.vest) || e.energy >= 100) return false; // no vestiário não tem espera
+      if (C.HEAL_ONLY_HALFTIME && !this.vest && !auto) return false; // v690 (Mickey): bebida só no intervalo
       c[id]--; e.healT = this.match.time;
       e.energy = Math.min(100, e.energy + it.restore);
       if (it.drainK) e.drainK = it.drainK; // v522: Vitamina de Banana, até o fim do tempo (zera no intervalo)
@@ -597,8 +618,28 @@ window.BL = window.BL || {};
       this.pushLog(`Treino: ${mine.map((p) => p.short).join(", ")} treinando passe e chute`, "sys");
       this.emit("matchStart", this.match);
     },
+    // v693 (Mickey): ao liberar o 2×2 ou o 3×3, o jogador escolhe quem sobe direto para o 1º nível do Ato. actNeed() = { map, lv, list } quando falta alguém no nível
+    actNeed() {
+      const F = C.XP_RULE && C.XP_RULE.fast, s = this.state; if (!F || !F.sync) return null;
+      for (let i = F.maps - 1; i >= 1; i--) { if (!this.mapUnlocked(i) || this.dev) continue;
+        const mp = C.MAPS[i], thr = mp.levelMin - 10, free = s.roster.filter((p) => !this.isAway(p.uid)), ready = free.filter((p) => p.level >= thr).length, list = free.filter((p) => p.level < thr);
+        return ready < mp.size && list.length ? { map: i, lv: mp.levelMin, list, left: mp.size - ready } : null; }
+      return null;
+    },
+    actPick(uid) {
+      const n = this.actNeed(), p = n && n.list.find((x) => x.uid === uid); if (!p) return false;
+      p.level = n.lv; p.xp = 0; const s = this.state; s.active = (s.active || []).filter((u) => u !== uid); s.active.splice(Math.min(s.active.length, C.MAPS[n.map].size - 1), 0, uid);
+      this.save(); this.emit("roster"); return true;
+    },
     // v312 · Seus mapas (C.PITCHES): campo escolhido em state.pitch; fora do dev só o Estádio (desbloqueio a definir)
-    pitchUnlocked(id) { return this.dev || id === "estadio"; },
+    pitchUnlocked(id) { return this.dev || id === "estadio" || (this.state.pitches || []).includes(id); }, // v693: comprado (state.pitches)
+    buyPitch(id, cur) { // v693 (Mickey): C.PITCH_COST em Gold ou Diamantes, uma vez por campo
+      const s = this.state, K = C.PITCH_COST, pt = C.PITCHES.find((p) => p.id === id); if (!pt || !K || this.pitchUnlocked(id)) return { ok: false, msg: "Campo indisponível." };
+      if (cur === "dia") { if ((s.diamonds || 0) < K.dia) return { ok: false, msg: `Diamantes insuficientes: ${pt.name} custa ${K.dia} ◆.` }; s.diamonds -= K.dia; }
+      else { if (s.gold < K.gold) return { ok: false, msg: `Gold insuficiente: ${pt.name} custa ${K.gold.toLocaleString("pt-BR")} Gold.` }; s.gold -= K.gold; if (s.analyzer) s.analyzer.goldSpent += K.gold; }
+      (s.pitches || (s.pitches = [])).push(id); this.save(); this.emit("gold"); this.emit("pitch");
+      return { ok: true, msg: `${pt.name} liberado!` };
+    },
     pitchId() { const id = this.state.pitch; return id && this.pitchUnlocked(id) && C.PITCHES.some((p) => p.id === id) ? id : "estadio"; },
     setPitch(id) {
       if (!this.pitchUnlocked(id) || !C.PITCHES.some((p) => p.id === id)) return false;
@@ -815,14 +856,15 @@ window.BL = window.BL || {};
       const ca = s.career || (s.career = { wins: 0, goals: 0, steals: 0 }); if (r.win) ca.wins++; ca.goals += r.score[0]; if (r.win) { this.misEv("win"); if (!r.score[1]) this.misEv("clean"); } this.misEv("goals", r.score[0]); /* v534: missões */ { const mc = { map: pr.map, st: stage, sz: this.map.size, t: this.myTactic && this.myTactic.id, d: this.diff(), gd: r.score[0] - r.score[1], g: r.score[0] }; if (r.win) ["stage", "tac", "mode", "margin", "dif"].forEach((k) => this.misEv(k, 1, mc)); this.misEv("hat", 1, mc); } /* v538 */ // v287: números da Jornada (perfil)
       an.xp += xp; an.goldGained += gold; an.goalsFor += r.score[0]; an.goalsAgainst += r.score[1];
       s.gold += gold;
-      const ups = this.giveXp(xp, this.match && this.match.played ? this.activePlayers().concat(this.match.played) : null, false, { acc: Math.round(xp * accK) }); // v585: teto de níveis // v139: reserva que entrou também ganha
+      const fastTo = r.win && C.XP_RULE && C.XP_RULE.fast && pr.map < C.XP_RULE.fast.maps ? Math.min(this.map.levelMax, this.map.levelMin + Math.round(stage * (this.map.levelMax - this.map.levelMin + 1) / C.STAGES_PER_MAP)) : 0; // v688: nível mínimo depois de vencer a fase
+      const ups = this.giveXp(xp, this.match && this.match.played ? this.activePlayers().concat(this.match.played) : null, false, { acc: Math.round(xp * accK), fastTo }); // v585: teto de níveis // v139: reserva que entrou também ganha
       // pontos de EV vão para o banco da conta (distribui na janela do jogador)
       const ev = (r.win ? C.EV_WIN : C.EV_LOSS) * (boss ? C.BOSS_REWARD_MULT : 1);
       const evx = ev * (1 + (this.mgrFx().ev || 0)) + (s.evCarry || 0), evn = Math.floor(evx + 1e-9); s.evCarry = evx - evn; // v473: itens do treinador (fração guardada para a próxima)
       s.evPoints = (s.evPoints || 0) + evn;
 
       // v128 (Mickey): ao vencer, uma roleta escolhe UM adversário e só ele tem a chance de roubo
-      let stolen = null, chance = 0, roll = 0, target = -1, prologue = null;
+      let stolen = null, chance = 0, roll = 0, target = -1, prologue = null; this._pity0 = s.stealPity || 0;
       if (r.win && boss && this.prologue()) { // v558 (Mickey): vitória no Mini Boss do Prólogo = roleta de um Comum garantido, sem Proposta
         const bossIds = C.MAPS.map((mp) => mp.boss && !mp.boss.keepPool && mp.boss.charId).filter(Boolean), have = s.roster.map((p) => p.charId);
         let pool = BL.CHARACTERS.filter((c) => !bossIds.includes(c.id) && !have.includes(c.id)); if (!pool.length) pool = BL.CHARACTERS.filter((c) => !bossIds.includes(c.id));
@@ -836,11 +878,13 @@ window.BL = window.BL || {};
         chance = BL.stealChance(en, stage, r.score[0]);
         if (this.boostLeft("steal")) chance = Math.min(100, chance + C.DIA_BOOST.steal); // v502
         if (this.gyBuff("steal")) chance = Math.min(100, chance + this.gyBuff("steal")); // v622: buff do ginásio
-        const ca = this.stealArmed(); // v526 (Mickey): igual Pokébola: sem Proposta ou contrato equipado não tem roubo; gasta 1 por tentativa
+        const ca = this.stealArmed(); this._arm = ca; // v526 (Mickey): igual Pokébola: sem Proposta ou contrato equipado não tem roubo; gasta 1 por tentativa
         if (!ca) { chance = 0; this.pushLog("Sem Proposta ou contrato equipado: nada de roubo. Equipe um na Mochila.", "sys"); }
         else if (C.SUPPLIES[ca].wc) { const q = C.SUPPLIES[ca], b = this.contractBonus(ca, { en, r, m: this.match, boss }); chance = Math.min(100, (chance + b.add + (this.mgrFx().scout || 0)) * b.mult); /* v527: Olheiro */ this.cons()[ca]--;  this.pushLog(`${q.name} usado: ${b.mult !== 1 ? `×${String(b.mult).replace(".", ",")}` : `+${b.add} pontos`} · chance de roubo ${Math.round(chance * 10) / 10}%`, "sys"); if (ca === "ct-luxo") s.luxoNext = true; }
         else { const arm = ca, q = C.SUPPLIES[arm]; chance = q.sure ? 100 : Math.min(100, chance + q.steal + (this.mgrFx().scout || 0)); /* v527: Contrato Blue Lock = 100%; Olheiro (treinador) */ this.cons()[arm]--;  this.pushLog(`${q.name} usada: chance de roubo ${Math.round(chance * 10) / 10}%`, "sys"); }
+        const SP = C.STEAL_PITY, pn = s.stealPity || 0; this._pity0 = pn; if (SP && ca && chance > 0 && chance < 100) chance = pn >= SP.sure && (!en.boss || SP.bossSure) ? 100 : Math.min(100, chance + Math.min(SP.max, SP.add * pn)); // v708 (Mickey): sorte do contrato, cada roubo que falha soma um pouco; garantido só depois de muitas falhas
         roll = Math.random() * 100;
+        if (SP && ca && chance > 0) s.stealPity = chance > 0 && roll < chance ? 0 : pn + 1;
         if (chance > 0 && roll < chance) {
           stolen = BL.makePlayer(en.charId, { rarity: en.rarity, shiny: en.shiny, level: 1 });
           if (s.luxoNext) stolen.luxo = 10; // v525: Contrato de Luxo: +20% de XP nas 10 primeiras partidas
@@ -883,17 +927,18 @@ window.BL = window.BL || {};
         pr.stage++; pr.reach = Math.max(pr.reach || 1, pr.stage);
       }
 
-      const res = { ...r, prologue, xp, gold, ev, stolen, chance: Math.round(chance * 10) / 10, roll: Math.round(roll * 10) / 10, target, ups, note, boss, enemy: this.enemy, stage };
+      const res = { ...r, prologue, xp, gold, ev, stolen, arm: !prologue && chance > 0 ? this._arm : null, /* v690: contrato usado, para o suspense */ chance: Math.round(chance * 10) / 10, roll: Math.round(roll * 10) / 10, pity: s.stealPity || 0, pity0: this._pity0 || 0, target, ups, note, boss, enemy: this.enemy, stage };
       if (this.enemyTactic && this.map.size > 1) this.pushLog(`Formação deles: ${this.enemyTactic.name}${this.enemyTactic.id === this.prefTactic(this.enemyTeam).id ? " (a de sempre)" : " (fora do estilo de sempre)"}`, "sys");
       this.pushLog(`${r.win ? "Vitória" : "Derrota"} ${r.score[0]} × ${r.score[1]} · +${xp} XP · +${gold} Gold · +${ev} EV`, r.win ? "goal" : "goal-against");
       if (stolen) this.pushLog(`ROUBADO! ${stolen.name} (${BL.rarity(stolen.rarity).name}) entrou no seu time`, "steal");
       else if (r.win && chance > 0) this.pushLog(`Tentativa de roubo falhou (${res.chance}%)`, "sys");
       if (r.win && this.enemies.length && s.stealArm && !(this.cons()[s.stealArm] > 0)) this.stealOut(s.stealArm); // v526: acabou o equipado
       if (note) this.pushLog(note, "sys");
+      if (C.MGR_CONSUME) { const eq = this.mgrEq(); eq.forEach((id, i) => { if (!id) return; const j = s.inventory.indexOf(id), nm = BL.MGR_BY_ID[id] ? BL.MGR_BY_ID[id].name : "Item de treinador"; if (j >= 0) s.inventory.splice(j, 1); else { eq[i] = null; this.pushLog(`${nm} foi usado nesta partida e acabou. Equipe outro na Mochila.`, "sys"); } }); } // v691: 1 uso por partida; repõe sozinho se houver outro igual
       this.save();
       this.recEnd(res);
       this.emit("matchEnd", res);
-      const delay = (r.win ? 3400 : 2600) / Math.max(1, C.GAME_SPEED * 0.6); // vitória: tempo para a roleta de roubo
+      const delay = (r.win ? 3400 : 2600) / Math.max(1, C.GAME_SPEED * 0.6) + (res.arm ? C.STEAL_SUSPENSE_MS + 1500 : 0); // vitória: tempo para a roleta de roubo · v690: + o suspense do contrato
       clearTimeout(this.nextT);
       this.nextT = setTimeout(() => this.startMatch(), delay);
     },
@@ -914,7 +959,9 @@ window.BL = window.BL || {};
       (list || this.activePlayers()).filter((p) => !p.temp).forEach((p) => {
         const g = xp, top = ref && R ? p.level + ((R.maxByMap || [])[s.progress.map] || R.maxLevels) : Infinity; // v664: teto por mapa // v586: reforço ×3 removido (Mickey)
         p.xp += p.luxo > 0 && !noAcc ? Math.round(g * 1.2) : g; if (p.luxo > 0 && !noAcc) p.luxo--; // v525: Contrato de Luxo
-        while (p.level < C.PLAYER_MAX_LEVEL && p.level < top && p.xp >= C.playerXpToNext(p.level)) { p.xp -= C.playerXpToNext(p.level); p.level++; ups.push(`${p.short} subiu para o Nv ${p.level}`); }
+        if (ref && ref.fastTo) { let need = -p.xp; for (let l = p.level; l < Math.min(ref.fastTo, top, C.PLAYER_MAX_LEVEL); l++) need += C.playerXpToNext(l); if (need > 0) p.xp += need; } // v688 (Mickey): começo rápido, vencer a fase leva ao nível da próxima
+        const lv0 = p.level; while (p.level < C.PLAYER_MAX_LEVEL && p.level < top && p.xp >= C.playerXpToNext(p.level)) { p.xp -= C.playerXpToNext(p.level); p.level++; }
+        if (p.level > lv0) ups.push(`${p.short} subiu para o Nv ${p.level}${p.level - lv0 > 1 ? ` (+${p.level - lv0})` : ""}`); // v688: uma linha por jogador
         if (p.level >= top) p.xp = Math.min(p.xp, C.playerXpToNext(p.level) - 1); // v585: no máximo maxLevels níveis por partida
       });
       const a = s.account; if (noAcc) return ups;
@@ -1098,6 +1145,7 @@ window.BL = window.BL || {};
     // ---------- v186 · Recompensa diária (ciclo de 30 dias) ----------
     dayKey(t) { const d = new Date(t || Date.now()); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; },
     daily() { const s = this.state; return (s.daily = s.daily || { day: 0, last: null, streak: 0 }); },
+    dailyBonus(n) { const DS = C.DAILY_STREAK; return DS ? Math.min(DS.max, DS.base + DS.step * Math.max(0, n - 1)) : 0; }, // v708
     dailyCan() { return this.daily().last !== this.dayKey(); },
     // perdeu um dia (último resgate antes de ontem): a sequência zera, o ciclo continua de onde parou
     dailyStreak() { const d = this.daily(), y = this.dayKey(Date.now() - 864e5); return d.last === this.dayKey() || d.last === y ? d.streak : 0; },
@@ -1109,10 +1157,13 @@ window.BL = window.BL || {};
       const day = (d.day >= L ? 0 : d.day) + 1, rw = C.DAILY_REWARDS[day - 1], out = { day, k: rw.k, n: rw.n };
       if (rw.k === "gold") s.gold += this.coachGold(rw.n);
       else if (rw.k === "diamantes") s.diamonds = (s.diamonds || 0) + rw.n;
-      else if (rw.k === "agua" || rw.k === "gatorade") this.cons()[rw.k] += rw.n;
+      else if (rw.k === "sup") this.cons()[rw.id] = (this.cons()[rw.id] || 0) + rw.n; // v696
+      else if (rw.k === "chest") { for (let i = 0; i < rw.n; i++) this.addChest(rw.id); }
+      else if (C.CONSUMABLES[rw.k]) this.cons()[rw.k] = (this.cons()[rw.k] || 0) + rw.n;
       else if (rw.k === "xp") this.giveXp(rw.n);
       else if (rw.k === "boneco") { const p = BL.makePlayer(U.pick(BL.CHARACTERS.map((c) => c.id)), { rarity: rw.rarity, level: 1 }); s.roster.push(p); out.name = p.name; }
       d.streak = this.dailyStreak() + 1; d.day = day; d.last = this.dayKey();
+      { const DS = C.DAILY_STREAK; if (DS) { out.bonus = this.dailyBonus(d.streak); s.gold += out.bonus; } } // v708 (Mickey): moedas da sequência, sobem a cada dia seguido
       this.pushLog(`Recompensa diária: dia ${day} resgatado`, "sys"); this.misEv("daily");
       this.save(); this.emit("roster"); this.emit("resources");
       return out;
@@ -1132,6 +1183,7 @@ window.BL = window.BL || {};
       if (m && !m.training && m.field && m.field(0).some((e) => e.p === p)) return "Está jogando agora";
       if (this.dev) return "";
       if (s.roster.length - 1 < size) return `O ${size}×${size} precisa de ${size} em casa`;
+      if (C.EXPEDITION.open && L <= C.EXPEDITION.open.levels) return ""; // v694 (Mickey): nível aberto, o fraco só corre mais risco (expFailP)
       if (p.level < q.lv) return `Precisa de Nv ${q.lv}+`;
       if (BL.power(p) < q.power) return `Poder ${BL.power(p).toLocaleString("pt-BR")} de ${q.power.toLocaleString("pt-BR")}`;
       return "";
@@ -1167,6 +1219,7 @@ window.BL = window.BL || {};
       const a = Math.min(1.25, k.reduce((s, x) => s + BL.baseStat(p, x), 0) / k.length / 31);
       return { pct: Math.round(a * 100), mult: Math.round((0.6 + 0.8 * a) * 100) / 100, keys: k };
     },
+    expFailP(p, L) { const O = C.EXPEDITION.open, q = this.expLevel(L).req; if (!O || !p || L > O.levels || this.dev) return 0; const pw = BL.power(p); return pw >= q.power ? 0 : Math.min(O.failMax, Math.round(((q.power - pw) / q.power) * O.failK * 100) / 100); }, // v694
     expDone() { const c = this.exp().cur; return !!c && Date.now() >= c.end; },
     expFinishNow() { const c = this.exp().cur; if (c && this.dev) { c.end = Date.now(); this.save(); } }, // só no modo dev, para testar
     // Resgate: o resultado só é sorteado na volta. Gold e XP garantidos, item e Água/Gatorade por chance.
@@ -1175,7 +1228,8 @@ window.BL = window.BL || {};
       if (!c || Date.now() < c.end) return null;
       const lv = this.expLevel(c.lvl), d = E.durations.find((v) => v.id === c.dur), p = this.player(c.uid);
       x.cur = null; if (!lv.r || !d) { this.save(); return null; }
-      const gold = this.coachGold(lv.rw.gold * d.mult), xp = Math.round(lv.rw.xp * d.mult);
+      const fail = !!p && Math.random() < this.expFailP(p, c.lvl), fk = fail ? C.EXPEDITION.open.failKeep : 1; // v694: expedição aberta pode falhar
+      const gold = Math.round(this.coachGold(lv.rw.gold * d.mult) * fk), xp = Math.round(lv.rw.xp * d.mult * fk);
       s.gold += gold;
       if (p) {
         p.xp += xp;
@@ -1183,26 +1237,26 @@ window.BL = window.BL || {};
       }
       let item = null, cons = null;
       const am = p ? this.expAff(p, c.lvl).mult : 1;
-      if (Math.random() < Math.min(0.98, d.item * am)) {
+      if (!fail && Math.random() < Math.min(0.98, d.item * am)) {
         const rare = { raro: 1, epico: 1, lendario: 1 };
         const rr = U.weighted(Object.entries(BL.ITEM_RARITY_WEIGHT).map(([v, wt]) => ({ v, w: wt * (rare[v] ? lv.r.rare : 1) })));
         const pool = BL.ITEMS.filter((it) => !it.shop && it.rarity === rr); item = U.pick(pool.length ? pool : BL.ITEMS); // v479: camisa básica só na Loja
         s.inventory.push(item.id);
       }
-      if (Math.random() < Math.min(0.98, d.cons * am)) { cons = Math.random() < 0.3 ? "gatorade" : "agua"; this.cons()[cons]++; }
+      if (!fail && Math.random() < Math.min(0.98, d.cons * am)) { cons = Math.random() < 0.3 ? "gatorade" : "agua"; this.cons()[cons]++; }
       const fichas = {}; { const rg = C.FICHA_DUR[d.id], w = C.FICHA_REGION[Math.min(C.FICHA_REGION.length - 1, Math.floor(lv.ri / 2))], ids = Object.keys(C.FICHAS); // v527: fichas da Expedição
         const raw = (rg ? U.randInt(rg[0], rg[1]) : 0) * (1 + (this.mgrFx().ficha || 0)), n = Math.floor(raw) + (Math.random() < raw % 1 ? 1 : 0); // Expedição (treinador)
         for (let i = 0; i < n; i++) { const f = U.weighted(ids.map((v, j) => ({ v, w: w[j] }))); fichas[f] = (fichas[f] || 0) + 1; this.cons()[f] = (this.cons()[f] || 0) + 1; } }
       x.count++;
       // progresso só no nível atual; barra cheia conclui e libera o próximo (sobra descartada: nunca pula nível)
       let prog = 0, cleared = 0;
-      if (c.lvl === x.level && !x.cleared) {
+      if (!fail && c.lvl === x.level && !x.cleared) {
         const need = E.progNeed(x.level); prog = Math.min(d.prog, need - x.prog); x.prog += prog;
         if (x.prog >= need) { cleared = x.level; x.prog = 0; if (x.level < E.maxLevel) x.level++; else x.cleared = true; }
       }
-      const res = { uid: c.uid, name: p ? p.name : "Jogador", lvl: c.lvl, region: lv.r.name, dur: d.name, gold, xp, lv: p ? p.level : 0, item: item && item.id, cons, fichas, prog, cleared, expLv: cleared && !x.cleared ? x.level : 0, at: Date.now() };
+      const res = { uid: c.uid, name: p ? p.name : "Jogador", lvl: c.lvl, region: lv.r.name, dur: d.name, gold, xp, lv: p ? p.level : 0, item: item && item.id, cons, fichas, prog, cleared, fail, expLv: cleared && !x.cleared ? x.level : 0, at: Date.now() };
       x.last = res;
-      this.pushLog(`${res.name} voltou da expedição: +${gold} Gold, +${xp} XP${item ? `, ${item.name}` : ""}${cons ? `, ${C.CONSUMABLES[cons].name}` : ""}${Object.entries(fichas).map(([f, n]) => `, ${n}× ${C.SUPPLIES[f].name}`).join("")}`, "steal");
+      this.pushLog(`${res.name} ${fail ? "falhou na expedição (fraco demais para o nível)" : "voltou da expedição"}: +${gold} Gold, +${xp} XP${item ? `, ${item.name}` : ""}${cons ? `, ${C.CONSUMABLES[cons].name}` : ""}${Object.entries(fichas).map(([f, n]) => `, ${n}× ${C.SUPPLIES[f].name}`).join("")}`, "steal");
       this.misEv("exp");
       if (cleared) this.pushLog(`Expedição: nível ${cleared} concluído!${res.expLv ? ` Nível ${res.expLv} liberado.` : ""}`, "sys");
       this.save(); this.emit("roster"); this.emit("resources");
@@ -1222,7 +1276,8 @@ window.BL = window.BL || {};
     // v267 · todos os baús vão para state.chests (janela Espólios): "padrao" = comum, "azul" = raro; limite por tipo
     blueChests: [],
     addChest(kind) {
-      const s = this.state, ch = { id: Math.random().toString(36).slice(2, 9), kind };
+      const s = this.state, CP = C.CHEST_PITY; if (CP && CP.lendario) { if (kind === "lendario") s.chestPity = 0; else if ((s.chestPity = (s.chestPity || 0) + 1) >= CP.lendario) { kind = "lendario"; s.chestPity = 0; this.pushLog("Sorte do baú cheia: este baú virou Lendário!", "steal"); } } // v708 (Mickey): sorte garantida do Baú Lendário
+      const ch = { id: Math.random().toString(36).slice(2, 9), kind };
       s.chests.push(ch); this.save();
       this.emit("chest", ch);
     },
@@ -1246,6 +1301,8 @@ window.BL = window.BL || {};
       const master = kind === "lendario" && Math.random() < C.MASTER_CHEST; if (master) { this.cons()["pr-bluelock"] = (this.cons()["pr-bluelock"] || 0) + 1; this.pushLog(`MASTER CONTRACT! Veio no baú lendário e foi para a Mochila.`, "steal"); } /* v533 (Mickey) */
       const cd = C.CANDY_CHEST[kind], candy = cd && Math.random() < cd.p ? cd.n : 0; if (candy) { this.cons()["tp-nivel"] = (this.cons()["tp-nivel"] || 0) + candy; this.pushLog(`Treino Particular ×${candy} no baú!`, "steal"); } /* v540 */
       const book = C.SKILL_BOOK && Math.random() < (C.SKILL_BOOK.chest[kind] || 0) ? this.skBook(this.skRoll(C.SKILL_BOOK.w)) : null; // v623: livro de habilidade nos baús épico e lendário
+      { const U2 = C.SKILL_UNLOCK_CHEST, pc = U2 && U2.p[kind], left = pc ? U2.ids.filter((x) => this.skNeedChest(x)) : []; // v694 (Mickey): lendária de baú
+        if (left.length && Math.random() < pc) { const sk = U.pick(left); (s.skillChest || (s.skillChest = {}))[sk] = 1; this.skLib(); this.pushLog(`Habilidade lendária liberada: ${C.SKILL_DEF[sk].name}!`, "steal"); this.emit("skills"); } }
       const sub = this.dropSub(kind); // v525: baú épico e lendário podem trazer sub-item raro do Wildcard
       const D = C.CHEST_DRINK[kind], drinks = []; // v522 (Mickey): bebida de baú, sorteada à parte
       if (D && Math.random() < D.p) for (let i = 0; i < D.n; i++) { const d = U.weighted(Object.entries(D.w).map(([v, w]) => ({ v, w }))); this.cons()[d] = (this.cons()[d] || 0) + 1; drinks.push(d); }
@@ -1554,7 +1611,14 @@ window.BL = window.BL || {};
       return this.mis().c[q.k] || 0; },
     misReady() { const q = this.misCur(); return !!q && this.misProg() >= q.n; },
     misOk(q, c) { if (!c) return true; return q.k === "stage" ? c.map === q.m && c.st === q.st : q.k === "tac" ? c.sz === q.sz && c.t === q.t : q.k === "mode" ? c.sz === q.sz : q.k === "margin" ? c.gd >= q.d : q.k === "hat" ? c.g >= q.d : q.k === "dif" ? c.d >= q.d : true; }, // v538: missões de partida
-    misEv(k, n = 1, ctx) { if (!this.state || !n) return; const m = this.mis(), q = this.misCur(); if (!q) return;
+    // v708 (Mickey) · missões semanais (C.WEEKLY): state.weekly { wk, c: {id: n}, got: {id: 1} }, zera toda segunda 0h
+    wkKey(t) { const d = new Date(t || Date.now()); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return this.dayKey(d.getTime()); },
+    weekly() { const s = this.state, k = this.wkKey(); if (!s.weekly || s.weekly.wk !== k) s.weekly = { wk: k, c: {}, got: {} }; return s.weekly; },
+    wkEnds() { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + 7); return d.getTime(); },
+    wkClaim(id) { const w = this.weekly(), q = (C.WEEKLY || []).find((x) => x.id === id); if (!q || w.got[id] || (w.c[id] || 0) < q.n) return false; w.got[id] = 1; const s = this.state;
+      q.rw.forEach((r) => { if (r.k === "gold") s.gold += r.n; else if (r.k === "chest") { for (let i = 0; i < r.n; i++) this.addChest(r.id); } else if (r.k === "sup") this.cons()[r.id] = (this.cons()[r.id] || 0) + r.n; });
+      this.save(); this.emit("resources"); return true; },
+    misEv(k, n = 1, ctx) { if (!this.state || !n) return; if (C.WEEKLY && C.WEEKLY.some((x) => x.id === k)) { const w = this.weekly(); w.c[k] = (w.c[k] || 0) + n; } const m = this.mis(), q = this.misCur(); if (!q) return;
       if (q.k === k && this.misOk(q, ctx)) m.c[k] = (m.c[k] || 0) + n;
       if (!m.note && this.misReady()) { m.note = 1; this.pushLog(`Missão concluída: ${q.goal}. Resgate o prêmio em Missões.`, "steal"); } },
     misClaim() { const q = this.misCur(); if (!q || !this.misReady()) return { ok: false, msg: "Missão ainda não concluída." };
@@ -1569,6 +1633,7 @@ window.BL = window.BL || {};
     // ---------- escalação ----------
     // Vagas: no treino até 4; nas partidas, o tamanho do modo (1×1 = 1 vaga, 2×2 = 2...)
     lineupLimit() { return this.state.training ? C.TRAINING_MAX : this.map.size; },
+    dex() { const s = this.state; if (!s) return {}; const d = (s.dex = s.dex || {}); (s.roster || []).forEach((p) => { if (!p || !p.charId || p.temp) return; const e = (d[p.charId] = d[p.charId] || {}); e[p.rarity] = 1; }); return d; }, // v708 (Mickey): coleção, raridades que você já teve de cada personagem (fica mesmo vendendo)
     lineup() { return this.activePlayers().filter((p) => !p.temp).map((p) => p.uid); },
     // v455 (Mickey) · posições com a bola e sem a bola do meu time (frações do campo, atacando para a direita; vaga 0 Fixo, 1 Ala Def, 2 Ala Of, 3 Pivô)
     posShape(k) { const s = this.state.posShapes && this.state.posShapes[k]; return s && s.length === 4 ? s : C.POS_SHAPES[k].map((q) => q.slice()); },

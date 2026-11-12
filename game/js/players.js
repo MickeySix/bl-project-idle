@@ -97,7 +97,8 @@ window.BL = window.BL || {};
     if (stage === C.STAGES_PER_MAP && map.boss && !escort) {
       const b = map.boss;
       const G = BL.Game, mi = G && G.state && G.prologue && G.prologue() && C.PROLOGUE.mini; // v558: Mini Boss do Prólogo (mais fraco)
-      const st = mi ? Object.fromEntries(Object.entries(b.stats).map(([k, v]) => [k, Math.max(1, Math.round(v * mi.statMul))])) : b.stats;
+      const bm = mi ? mi.statMul : (C.EASY_MODES && C.EASY_MODES[map.size] && C.EASY_MODES[map.size].bossMul) || 1; // v692: Boss dos mapas rápidos mais leve (bossMul)
+      const st = bm !== 1 ? Object.fromEntries(Object.entries(b.stats).map(([k, v]) => [k, Math.max(1, Math.round(v * bm))])) : b.stats;
       const p = BL.makePlayer(b.charId, { rarity: C.BOSS_AWAKE ? "despertado" : b.rarity, stats: st, nature: b.nature, level: mi ? mi.level : b.level }); // v552 (Mickey): Boss sempre Despertado
       p.boss = true; p.title = mi ? mi.title : b.title; if (mi) p.mini = true;
       BL.enemySkills(p, map.size, true); return p;

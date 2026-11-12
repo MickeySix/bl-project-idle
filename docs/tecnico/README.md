@@ -1,6 +1,6 @@
 # BL PROJECT IDLE · Documentação técnica
 
-Versão documentada: **v687** (`BL.BUILD` em `game/js/config.js`). Jogo publicado em https://claude.ai/artifact/4LFiip85peJuMZmXMS2nSS.
+Versão documentada: **v710** (`BL.BUILD` em `game/js/config.js`). Jogo publicado em https://claude.ai/artifact/4LFiip85peJuMZmXMS2nSS.
 
 **Comece por aqui.** Esta pasta existe para dar contexto sem ler o projeto inteiro. Para uma tarefa, leia este README, abra só o arquivo da área da tarefa na tabela abaixo e, no código, ache o trecho com `grep` pelo nome de função ou constante citado no doc. Os arquivos grandes (`engine.js`, `ui.js`, `style.css`, com mais de 130 KB cada) nunca precisam ser lidos inteiros. Se o doc e o código discordarem, vale o código, e o doc deve ser corrigido na mesma tarefa.
 
@@ -35,7 +35,7 @@ Decisões do Mickey que valem para qualquer mudança:
 
 - Números de equilíbrio sempre em `config.js`; textos da interface em português.
 - Toda regra de jogo vale igual para os dois times (Mickey, 2026-10-25). Se algo só vale para um time, aplique nos dois; só fica de um time quando o Mickey avisar.
-- Ninguém corre mais rápido com o nível: corrida limitada a 210 (legibilidade dos sprites). Jogo em velocidade 1×.
+- Ninguém corre mais rápido com o nível: corrida limitada a 210 (legibilidade dos sprites). Jogo em velocidade 1× (exceção pedida pelo Mickey: o 1×1 roda com `C.X1.speed` 1,31 desde a v688).
 - Depois de qualquer mudança de IA ou equilíbrio, rode as simulações e mantenha cada vantagem do pedra-papel-tesoura perto de 67% (Mickey, 2026-11-07: "mais ou menos 67%", para o jogo ficar equilibrado e divertido; antes era 70%).
 - Roleta inicial: removida na v350 a pedido do Mickey; o jogador escolhe entre até 3 personagens da função (sprites balançando).
 - Câmera fixa mostrando o campo todo (a que segue a bola foi recusada); jogadores na escala ×1.

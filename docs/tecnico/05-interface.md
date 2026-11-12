@@ -369,6 +369,38 @@ Botão Game Pass do dock (`data-gp-open`, com bolinha vermelha de prêmios a res
 
 Botão PvP do dock (`data-pvp-open`) e item do menu abrem a tela própria `#pvOv` (`js/pvp.js`, CSS `css/pvp.css`, prefixo `.pv-`): topo (título, Diamantes, "Como funciona" com a janela de regras, fechar), menu lateral (no celular vira faixa de abas no topo) e abas Ao vivo (copa atual, sua situação com "Entrar na partida", apostas, últimos resultados), Torneios (copas do dia com regras e prêmios, "Inscrever meu time"), Chave (tabelas dos grupos e mata-mata), Ranqueada (anel de ELO, "Buscar adversário", ranking), Multi 2x2 (escolha 2 jogadores), Histórico e Formatos (com busca).
 
-## Explicação do começo (v682)
+## Tutorial guiado do Mickey (v688)
+
+Pedido do Mickey: conduzir o jogador novo pela mão. Em `ui.js`, `TUT_SEQ` lista as sequências, na ordem em que são testadas por `tutTick()` (a cada 150 ms, só com partida rodando, sem pop-up aberto, fora do treino, PvP e modo dev). Quando uma sequência dispara, a partida fica pausada (`match.paused`) até o fim dela.
+
+| id | Dispara quando | O que ensina |
+|---|---|---|
+| `inicio` | 1ª partida | Apresentação, card do seu jogador, card do adversário (roubo e Propostas), abrir o Correio e resgatar o kit (v690; passos com `skip()` são pulados) |
+| `habilidade` | 2ª partida, com habilidade na biblioteca e nenhuma equipada | Clicar no slot vazio, clicar na habilidade, fechar |
+| `ev` | 3ª partida em diante, com pontos de EV | Clicar no jogador, dar +1 ou +10 em um atributo (IV × EV), fechar |
+| `energia` | Jogador do time abaixo de 50 de energia | Aviso: bebida só no intervalo, no Vestiário (v690) |
+| `vestiario` | Vestiário aberto com bebida utilizável (`vest: true`: roda com o Vestiário aberto) | Clicar na bebida |
+| `bau` | 2ª partida em diante, com baú em `state.chests` | Abrir Espólios |
+| `missoes` | 4ª partida | Abrir Missões |
+| `tecnico` | 5ª partida | Card do técnico, janela Técnicos (passivas) e itens de treinador (3 espaços, 1 partida cada, v691) |
+| `fases` | 2ª partida, já na fase 1-2 ou adiante (vem logo depois de `inicio`) | Botão Mapa, caminho das 10 fases (vitória avança sozinha, derrota repete), Boss libera o 2×2 (v692) |
+| `misericordia` | partida seguinte à primeira encerrada por 4 gols | Placar: explica a regra de misericórdia (v693) |
+| `expedicao` | 3ª partida, com jogador sobrando no elenco | Botão Expedição e 3 balões: o que rende, tempos (30 min a 8 h, conta com o jogo fechado), barra de nível (v693) |
+| `soneca` | da fase 1-7 em diante | Lua do topo e 2 balões: XP com o jogo fechado, só XP e a 50% (v693) |
+| `fichas` | primeira ficha de cor na Mochila | Mochila, aba Forja, quanto cada cor pede e o botão Forjar (v695) |
+
+**v692, baú e contrato**: `chestArt` desenha o baú 3D de `img/baus/bau-KIND.png` (também no Espólios); `chestBoom` e `stealSuspense` seguem os storyboards do Mickey (ver doc 11, v692).
+
+Cada passo tem `t` (texto, pode ser função), `at()` (elemento destacado), `ok` (texto do botão, para passo só de leitura) ou `until()` (condição que avança, para passo de clique), `enter()` e `allow()` (área extra que aceita clique). Enquanto o balão está aberto, um ouvinte em captura bloqueia cliques fora do alvo, da área liberada e do balão, e a tecla Esc. Se o alvo some por ~2 s, a sequência volta ao 1º passo. Entre uma sequência e outra há 8 s de respiro (`TUT.wait`). "Pular tutorial" marca `state.tut.done.all`. Progresso em `state.tut { n, done }` (`n` = partidas começadas); save antigo com mais de 3 partidas nasce com `done.all`. Visual: `#tut`, `.tut-ring` (destaque com sombra que escurece o resto), `.tut-bub` (balão com seta), `.tut-face` (v689: rostinho do Mickey em `img/tutorial/mickey.png`, 2 quadros, com pálpebras em `mickey-lids.png`; classes `.talk` e `.pop`). `modeNotice` espera o tutorial terminar.
+
+## Explicação do começo (v682, desligada na v688)
+
+Desde a v688 o pop-up não abre mais sozinho (o tutorial acima tomou o lugar); a função continua no código.
+
 
 `introNotice()` em `ui.js`: pop-up único "Como funciona" na primeira partida de uma conta nova (marca `state.firstTip`). Usa o visual `.mdn` com `.itr`. Os textos saem de `C.STEAL_GIFT` e da habilidade liberada no nível 1 em `C.SKILL_UNLOCK_LV`.
+
+
+## Ficha do jogador no PC (v707)
+
+`pcLeftHtml` em `ui.js` monta o painel do jogador escolhido no PC do treinador; o visual da ref. do Mickey está no bloco CSS "v707 (Mickey, ref. da ficha do jogador)" no fim do `style.css`, tudo com escopo `.pct-left` (palco de luz em `.pc-fig.big`, Poder na 2ª caixa de `.pc-g2`, total de IVs em `.pc-ivs > small b`).

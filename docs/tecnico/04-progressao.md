@@ -24,7 +24,7 @@ Resumo do loop: partidas rendem XP, Gold, EV, baús e a chance de roubar um joga
 - v536 (Mickey: níveis até 1000, 10 mapas de 100 níveis): mapas 5 a 10 abrem só depois de vencer o Boss do anterior em qualquer dificuldade (`G.mapUnlocked`, `G.mapEverCleared`). Os Bosses deles têm `keepPool: true` (continuam como adversário comum e nas opções iniciais). Os Bosses são provisórios até o Mickey mandar os personagens famosos escolhidos (comentário em `C.MAPS`): 5 Ryusei Shidou, 6 Oliver Aiku, 7 Alexis Ness, 8 Rin Itoshi, 9 Noel Noa, 10 Michael Kaiser. A arte dos mapas novos também vem do Mickey. As dificuldades agora liberam vencendo o Boss do mapa 10, e os níveis somados param no 1000. A janela Mapa mostra os 10 atos em 2 linhas.
 
 - Dados em `C.MAPS[i]` (`size`, `levelMin/Max`, `boss{ charId, title, rarity, level, stats, nature, team, arena }`). O número de jogadores do modo (`size`) escolhe a lista de táticas (`C.TACTICS[size]`): 1×1 uma, 2×2 e 3×3 por número de atacantes, 4×4 as três formações pedra-papel-tesoura (detalhe em [02 §2.11](02-motor-e-ia.md#211-formações-e-estilos-44)).
-- `G.mapUnlocked(i)`: o elenco (sem quem está em Expedição ou no Boss) tem pelo menos `size` jogadores, ou o modo dev está ligado.
+- `G.mapUnlocked(i)`: o elenco (sem quem está em Expedição ou no Boss) tem pelo menos `size` jogadores **e** o Boss do mapa anterior já foi vencido em qualquer dificuldade (v689, Mickey: vale para todos os mapas; quem já jogava o modo continua por `state.modeMax`), ou o modo dev está ligado. `switchMap` guarda em `progress.reachBy` até onde o jogador chegou em cada mapa e dificuldade e retoma dali.
 - `G.switchMap(i, fase = 1)`: troca de mapa, zera `runSteals` e começa a partida. A janela "Mapas" (dock) lista os 4 e abriga o mapa de fases.
 - **Arena do Boss**: só na fase 10. `BL.Match` recebe `arena` e multiplica todos os status do time dele por `1 + bossBuff` e os seus por `1 − userDebuff` (`arenaMult`). O fundo usa `tint`, `vignette` e, na de Sae, `grad` (rosa-vermelho para verde); o motor desenha vinheta que "respira", sem texto no centro.
 - Nos modos maiores o Boss entra com escoltas sorteadas no nível da fase 10 ([03 §3.10](03-jogadores.md#310-inimigos)).
@@ -60,7 +60,8 @@ Recompensas da partida são só XP, Gold, EV e a chance de roubo (regra do Micke
 ```
 XP (mapa 1, 1×1) = 14 + 6 × (fase − 1)   (XP_BASE, XP_PER_STAGE) → 1-1: 14, 1-9: 62, + bônus do X1
 XP (mapas 2-10)  = pace[mapa] × nível médio dos inimigos (sem a dificuldade)   (v585, C.XP_RULE.pace 3,2 / 2,2 / 1,4 / 0,25…)
-× early[mapa] nos mapas 1-3        (v668, C.XP_RULE.early 3 / 5 / 6; teto de níveis por partida maxByMap 6 / 4 / 3, depois 3)
+× early[mapa] nos mapas 1-3        (v668, C.XP_RULE.early 3 / 5 / 6; teto de níveis por partida maxByMap 10 / 10 / 10 desde a v688, depois 3)
+v688 (C.XP_RULE.fast.maps 3): vitória nos mapas 1-3 leva quem jogou pelo menos ao 1º nível da fase seguinte (levelMin + fase × 10), até o teto de 10 níveis
 × raridade média dos inimigos     (C.XP_RULE.rar: Comum 1 … Lendário 1,5, Despertado 1,75, Shiny +0,25; não vale no Time Dourado)
 Gold =  6 + 3 × (fase − 1)        (GOLD_BASE, GOLD_PER_STAGE) → 1-1: 6, 1-9: 30
 Boss: ×3                          (BOSS_REWARD_MULT)        → fase 10: XP 204, Gold 99
@@ -71,6 +72,7 @@ EV no banco: vitória 4, derrota 1, ×3 no Boss
 - **v585 (Mickey) · ritmo da progressão:** rápido até o 4×4, idle de verdade depois. Meta (21 partidas por hora): mapa 1 ~3-4 h, mapa 2 ~7 h, mapa 3 ~10 h (4-1 em ~21 h de jogo), mapa 4 ~16 h, mapas 5 a 10 ~85 h cada. Conta em `G.matchXpBase`/`G.rarXp`/`G.enemyLv`; estudo em `docs/progressao/proposta-xp-ate-4x4.md`.
 - **Teto** (`G.giveXp(xp, lista, noAcc, ref)`): numa partida cada jogador sobe no máximo `maxLevels` 3 níveis (o XP que sobra se perde). v586 (Mickey): sem reforço extra para quem está atrasado; o roubado de nível baixo já sobe rápido porque cada nível dele custa pouco. A conta (técnico) recebe o XP no ritmo antigo (`ref.acc`), para os goleiros não subirem antes.
 - **Começo tranquilo** (v587, `C.EASY_MODES` por tamanho do time, em `BL.makeEnemy`): inimigos comuns (não o Boss nem Shiny) do 1×1 até Raro e status ×0,9; do 2×2 até Épico e ×0,93; do 3×3 até Épico. E o nível relativo pesa menos nesses modos (`C.LEVEL_REL_EXP` 1 no 1×1 ao 3×3; 1,5 no 4×4, no engine `e.rel`). Medido (time de Comuns, 40 partidas por ponto): no mesmo nível 1×1 ~63%, 2×2 ~55%, 3×3 ~47%; 20 níveis abaixo 2×2 ~50%, 3×3 ~27%; 50 abaixo 5-12%; 100 abaixo 0-7%. O 4×4 não muda.
+- **v692 (vale no lugar dos números acima)**: `C.EASY_MODES` statMul 1×1 0,78, 2×2 0,68, 3×3 0,67 (0,61 desde a v704; 2×2 0,67; ver doc 02), para vitória perto de 70%, 60% e 50% com time de Comuns no 1º nível da fase. `bossMul` multiplica os status do Boss do mapa (2×2 0,52; 3×3 0,32; perto de 50%). Mini Boss do Prólogo com `statMul` 0,6. `C.XP_RULE.fast.sync` (em `G.startMatch`): nos mapas 1 a 3 ninguém entra abaixo do 1º nível da fase; na fase do Boss todos entram no nível dele.
 - O modo dormir (`G.sleepRate`) usa a mesma conta, com o nível do meio da fase e raridade 1,15.
 
 - A fórmula usa só o número da fase, não o mapa: os mapas 2–4 pagam igual ao 1.
@@ -110,6 +112,7 @@ A energia dos jogadores cai com toda ação e abaixo de 50 os status despencam (
 | Gatorade ⚡ | 30 Gold | +100 (energia cheia) |
 
 - **Origem**: comprados na Loja com Gold (`G.buyCons`), ou ganhos na Diária e na Expedição (quando cai, 70% Água e 30% Gatorade).
+- **v690 (Mickey): bebida só no intervalo.** Com `C.HEAL_ONLY_HALFTIME` ligado, `healRow` não desenha os botões no card e `G.useCons` recusa fora do Vestiário (a Cura automática do VIP passa `auto` e continua). O texto abaixo vale com a chave desligada.
 - **Uso manual**: botões 💧/⚡ no card de cada jogador em "Meu time" (`healRow`, atualizado a cada 1 s). `G.useCons(uid, id)` só funciona com a partida em andamento (inclui o treino em dois times, onde os dois lados são seus; não o treino solo), com item no estoque, energia < 100 e fora da espera `HEAL_COOLDOWN = 30 s` de jogo por jogador (`e.healT`). No Vestiário não há espera.
 - **Módulo de Descanso** (v509 como Módulo de cura, renomeado na v512; Mickey): item permanente da Loja de Diamantes (`mod-cura`, 250 ◆ proposta, `state.healModule`). Em todo intervalo, `G.halftime` deixa a energia do time em campo em 100, sem gastar itens. Compra única.
 - **Cura automática** (até a v508 chamada de Módulo de cura; benefício VIP, toggle `#gatoradeToggle` = `settings.autoGatorade`): `G.autoHeal()`, chamado a cada 1 s de jogo (`m.onSample`), usa Gatorade (ou Água, se não houver Gatorade) em quem está abaixo de `HEAL_AUTO_BELOW = 50` (onde os status começam a cair), respeitando a mesma espera. Sem item no estoque, não cura.
@@ -272,6 +275,8 @@ Pedido do Mickey: o jogo "continua rodando" com o computador desligado.
 
 ## Seus mapas: campos com efeito (v312)
 
+**v693**: os campos são comprados (`C.PITCH_COST`: 50.000 Gold ou 30 Diamantes, `G.buyPitch`, `state.pitches`) e cada Boss joga no campo da casa dele (`C.BOSS_HOME`), com o efeito valendo. Janela Novo Ato (`G.actNeed`/`G.actPick`): ao liberar 2×2 ou 3×3, escolhe-se quem sobe para o 1º nível do Ato.
+
 - O card do mapa no canto inferior direito do painel (`.dock-map`, `data-open="pitches"`) abre **Seus mapas** (`MODALS.pitches`, `#modal.modal-sm`, classes `sm-*`). As fases do mapa continuam no botão "Ver fases do mapa" (`MODALS.maps`) e na janela Mapa da lateral.
 - Campos em `C.PITCHES`: Estádio BL PROJECT (oficial, sem efeito), Floresta (todos os atributos ×1,05), Deserto (gasto de energia ×1,3), Street (bote e carrinho acertam ×0,8), Espaço (corrida ×1,08, sem passar de `C.RUN_MAX` 210). Vale para os dois times.
 - Escolha em `state.pitch` (`G.setPitch` reinicia a partida no campo novo; `G.pitchId()`). Fora do dev só o Estádio está liberado (`G.pitchUnlocked`); por decisão do Mickey (2026-10-13) fica assim por enquanto; no futuro ele quer mapas para farmar itens e outras coisas. O Boss sempre joga no Estádio com a arena dele.
@@ -320,7 +325,7 @@ Tudo em `js/clan.js` (`BL.Clan`) e `C.CLANS` (config.js). Estado em `localStorag
 `js/gamepass.js` (`BL.GamePass`) e `C.GAMEPASS`. Dados por conta: `state.gp = { season, xp, prem, got: { f: {nível: 1}, p: {...} }, daily }` e `state.gpAuras = { celeste|ego: uid ou "" }` (auras ficam para sempre).
 - **Temporada** = mês do calendário no horário de Brasília (`season()`; Temporada 1 = nov/2026, `start`). Virou o mês, zera XP, resgates e Premium; nome vem de `names`.
 - **XP**: em cada `matchEnd` fora do treino: `match` + `win` + `goal` por gol (até `goalMax`) + `steal` + `boss`/`gym`/`clan` na vitória. Missões diárias (`daily`, zeram no `dayKey`) somam XP sozinhas ao completar. Nível l custa `need[0] + need[1]×l` (`cum(l)` = total; Nv 100 ≈ 89,7 mil, Nv 200 ≈ 239 mil).
-- **Prêmios**: ciclo de 10 níveis `free`/`prem` (quantidade +50% a cada 50 níveis; baú não escala) e `special` nos níveis 50/100/150/200. Tipos: gold, dia, chest (`G.addChest`), aura e itens da Mochila (`G.cons()`).
+- **Prêmios** (v706, Mickey): ciclo de 10 níveis `free`/`prem` mais variado (Gold, baús, bebidas, Vídeo de análise/Treino extra, Fichas Verdes/Azuis, Propostas Básica/Forte/Elite). A quantidade cresce aos poucos, × (1 + (nível − 1)/`grow`) (Nv 101 = ×2, Nv 200 ≈ ×3); os baús do ciclo sobem um degrau a partir do nível `chestUp` (101). `special` a cada 25 níveis, cada um melhor que o anterior (Treino Particular, Ficha Roxa, baús Lendários, auras no 100 e 200). **Sem Master Contract** (saiu na v706) e sem Diamantes. Tipos: gold, chest (`G.addChest`), aura e itens da Mochila (`G.cons()`).
 - **Premium**: `price` Diamantes na tela (ou pelo card da Loja de Diamantes, `gp: true`), vale a temporada e libera os prêmios premium já alcançados. **Avançar níveis**: `skip` Diamantes por nível.
 - **Auras** (`auras`): Celeste no Nv 100 e do Ego no Nv 200 Premium; só visual. O jogador escolhido ganha `p.gpAura` (sincronizado no `matchStart`, então jogador vendido não leva) e o motor desenha a aura como a do Despertado.
 
@@ -335,8 +340,22 @@ Tudo em `js/clan.js` (`BL.Clan`) e `C.CLANS` (config.js). Estado em `localStorag
 
 ## Aviso de modo liberado (v679)
 
-Os mapas 2 a 4 (2×2, 3×3, 4×4) abrem só pelo tamanho do elenco (`G.mapUnlocked`). `G.modeTop()` = maior desses já aberto; `state.modeMax` = maior já jogado (gravado em `switchMap`); `state.modeSeen` = último avisado. `G.modeNew()` devolve o modo a avisar e a interface (`modeNotice` em ui.js, a cada 2,5 s, sem pop-up aberto) mostra o pop-up uma vez; o selo do botão Mapa fica até o jogador entrar no modo. No modo dev não avisa.
+Os mapas 2 a 4 (2×2, 3×3, 4×4) abrem com o elenco do tamanho do modo e o Boss do mapa anterior vencido (`G.mapUnlocked`, v689; antes só pelo elenco). `G.modeTop()` = maior desses já aberto; `state.modeMax` = maior já jogado (gravado em `switchMap`); `state.modeSeen` = último avisado. `G.modeNew()` devolve o modo a avisar e a interface (`modeNotice` em ui.js, a cada 2,5 s, sem pop-up aberto) mostra o pop-up uma vez; o selo do botão Mapa fica até o jogador entrar no modo. No modo dev não avisa.
 
 ## Diamantes e beta (v680)
 
 Diamantes entram só por compra (Pix ainda não ativo), pelo Leilão (de outro jogador) e por `C.DIAMOND_DROP`: 0,2% (v687; era 0,5%) de cair 1 a cada vitória, em qualquer fase. Nenhuma recompensa dá Diamante (Diária, baú do Boss, PvP, Guilda, Game Pass e correio foram trocados por Gold). A conta nova começa com 205 Propostas Básicas (`C.STEAL_GIFT`). Até a primeira vitória, o adversário do 1×1 entra com stats ×0,55 (`C.FIRST_WIN`).
+
+**v694**: liberação das habilidades mudou (raras até o Nv 40, épicas por Ato ou Diamantes, lendárias por baú) e a Expedição nível 1 ficou aberta com risco de falha; ver doc 11, v694.
+
+**v696**: tabela da Diária refeita pelo Mickey (dias 7 a 30), com baús, fichas, Suco e Treino Particular; ver doc 11, v696.
+
+## Retenção (v708, Mickey 2026-11-11)
+
+Das 10 ideias que propus, o Mickey aprovou 6 (recusou prestígio, "próximo prêmio sempre na tela" e ranking semanal; eventos de fim de semana ficam para depois):
+- **Sorte do contrato** (`C.STEAL_PITY` em `endMatch`, `state.stealPity`): cada roubo com Proposta que falha soma `add` pontos na chance (até `max`); na falha `sure` o próximo é garantido, menos contra Boss e Mini Boss (`p.boss`; `bossSure: false`, v709: nesses só vale o bônus até `max`); zera ao roubar. O suspense mostra "Sorte N/100" (valor antes da tentativa, `res.pity0`, para não entregar o resultado) e, se faltou menos que `near`, troca "Contrato rasgado" por "Quase! Faltou X%".
+- **Sorte do Baú Lendário** (`C.CHEST_PITY.lendario` 80, `state.chestPity`, em `G.addChest`): cada baú ganho que não é Lendário soma 1; ao chegar no número, aquele baú vira Lendário. Barra no painel esquerdo do Espólios.
+- **Coleção** (aba "Coleção" do PC, `pcDex` em ui.js, `G.dex()` → `state.dex = {charId: {raridade: 1}}`, alimentado pelo elenco e mantido mesmo vendendo): estilo Pokédex, quem você nunca teve aparece em silhueta e "???"; clicar mostra as 6 raridades. v709: a silhueta vale também no destaque grande da esquerda, e clicar não volta a grade para cima (`pcKeepScroll`, também nos Marcos).
+- **Moedas da sequência** (`C.DAILY_STREAK`, `G.dailyBonus`): no resgate da Diária, Gold extra = base + step × (dias seguidos − 1), até max (50 → 1.210 no dia 30). Perdeu um dia, recomeça.
+- **Missões semanais** (`C.WEEKLY`, `G.weekly`/`wkClaim`, contadas pelo `misEv`): 4 metas, zeram segunda 0h, seção "Semanais" na janela Missões.
+- **Títulos** (`C.TITLES`, `G.titleVal`/`useTitle`): 5 conquistas no Perfil; liberado, vira o nome do time com 1 clique, grátis (não conta como troca de nome).
