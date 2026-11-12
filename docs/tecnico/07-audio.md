@@ -59,3 +59,5 @@ Configurações (engrenagem) > Áudio (`SETTINGS_TABS[0]`): um controle deslizan
 4. Adicione o nome em `BL.sfx = (kind) => …` (`ui.js`) e chame `BL.sfx("<nome>")` no evento certo em `G.onMatchEvent` (`game.js`); se o evento ainda não existe, o motor o emite com `this.onEvent(...)`.
 5. Inclua o arquivo na lista de publicação.
 - v576: caneta, drible da vaca e puxada (X1) tocam o som do drible quando a bola sai do pé (evento `trickGo`, sem som de passe); na retomada da bola o evento `dribble` vem com `noSnd`.
+
+**v693**: três áudios enviados pelo Mickey tocam por `fxSnd(nome)` (ui.js), no volume do canal "Roleta e menus" × 0,7: `snd/contrato-roubou.mp3` e `snd/contrato-rasgado.mp3` (começam 0,8 s antes do resultado do roubo) e `snd/bau-abre.mp3` (começa 0,75 s depois de abrir o baú, o estouro cai na explosão).

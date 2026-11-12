@@ -9,11 +9,13 @@
 
   // v265 · baús em pixel art dentro de um card (padrão = madeira em card branco; azul = card azul). Tampa em <g class="ch-lid"> para abrir.
   const CH_PAL = { padrao: { O: "#2a1608", M: "#8a4b1c", L: "#c27a34", D: "#5e3210", B: "#b9bccb" }, azul: { O: "#071538", M: "#1f5fd6", L: "#5aa6ff", D: "#123c94", B: "#e8eeff" }, epico: { O: "#1e0638", M: "#7a2fd6", L: "#c48bff", D: "#4d1694", B: "#f2e6ff" }, lendario: { O: "#3a2000", M: "#e09a1a", L: "#ffe27a", D: "#9a5a00", B: "#fff6d6" } };
+  // v692 (Mickey): baú 3D da arte dele (img/baus/bau-KIND.png, uma cor por tipo). Continua num <svg viewBox 16x15> para os tamanhos antigos valerem; a tampa (.ch-lid) e o corpo (.ch-body) são a mesma imagem com recortes, para a tampa voar na animação
+  const CH_KC = { padrao: "#d49a5c", azul: "#4d94ff", epico: "#b872ff", lendario: "#ffc83f" };
   function chestArt(kind = "padrao", cls = "") {
-    const P = CH_PAL[kind] || CH_PAL.padrao, r = (x, y, w, h, c) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"/>`;
-    const lid = r(1, 0, 14, 1, P.O) + r(0, 1, 16, 5, P.O) + r(1, 1, 14, 4, P.M) + r(2, 1, 12, 1, P.L) + r(1, 4, 14, 1, P.D) + r(3, 1, 1, 4, P.B) + r(12, 1, 1, 4, P.B);
-    const body = r(0, 5, 16, 10, P.O) + r(1, 6, 14, 8, P.M) + r(1, 6, 14, 1, P.D) + r(2, 8, 12, 1, P.L) + r(1, 10, 14, 1, P.D) + r(3, 6, 1, 8, P.B) + r(12, 6, 1, 8, P.B) + r(6, 5, 4, 4, P.O) + r(7, 6, 2, 2, "#ffd23f");
-    return `<span class="ch-card ch-${kind} ${cls}"><svg viewBox="0 0 16 15" shape-rendering="crispEdges" aria-hidden="true"><g class="ch-body">${body}</g><g class="ch-lid">${lid}</g></svg></span>`;
+    if (!CH_PAL[kind]) kind = "padrao";
+    if (!document.getElementById("chClips") && document.body) document.body.insertAdjacentHTML("beforeend", `<svg id="chClips" width="0" height="0" style="position:absolute" aria-hidden="true"><defs><clipPath id="chClipL"><polygon points="0,0 16,0 16,6.6 12.7,7.2 12.7,8.5 8.6,8.9 8.6,7.9 3.3,7.9 0,6.3"/></clipPath><clipPath id="chClipB"><polygon points="0,6.3 3.3,7.9 8.6,7.9 8.6,8.9 12.7,8.5 12.7,7.2 16,6.6 16,15 0,15"/></clipPath></defs></svg>`);
+    const im = `<image href="img/baus/bau-${kind}.png?v=${BL.BUILD}" x="0" y="0" width="16" height="15" preserveAspectRatio="xMidYMid meet"/>`;
+    return `<span class="ch-card ch-${kind} ${cls}"><svg viewBox="0 0 16 15" aria-hidden="true"><g class="ch-body" clip-path="url(#chClipB)">${im}</g><g class="ch-lid" clip-path="url(#chClipL)">${im}</g></svg></span>`;
   }
   const CH_SLOT_IC = { chuteira: "👟", caneleira: "🛡️", camisa: "👕", treinador: "🧢" };
   const itLore = (it) => it.desc + (it.ef ? ` Efeito: ${it.ef}` : "") + (it.ci ? ` Só ${it.who}, Épico ou acima, no espaço extra de personagem.` : ""); // v522 (v527: item de personagem)
@@ -28,6 +30,22 @@
     const close = () => { el.classList.add("out"); setTimeout(() => el.remove(), 250); };
     el.addEventListener("click", () => { if (Date.now() - t0 > 900) close(); });
     const t0 = Date.now(); (host || document.body).appendChild(el); setTimeout(close, 3600);
+  }
+
+  // v690 (Mickey): abrir baú com suspense. v692: segue o storyboard dele em 4 tempos: pulsa e treme, carrega energia (anéis fechando), explode e abre (a tampa voa), prêmio (item, raridade, Gold, "Toque para continuar"). list = resultados de G.openChest (1 ou vários: mostra o melhor item e o total)
+  function chestBoom(list) {
+    list = (list || []).filter(Boolean); if (!list.length) return;
+    const ord = C.RARITIES.map((x) => x.id), best = list.slice().sort((a, b) => ord.indexOf(b.item.rarity) - ord.indexOf(a.item.rarity))[0], kb = ["padrao", "azul", "epico", "lendario"], kind = list.map((x) => x.kind || "azul").sort((a, b) => kb.indexOf(b) - kb.indexOf(a))[0];
+    const gold = list.reduce((n, x) => n + (x.gold || 0), 0), rc = rar(best.item.rarity).color, old = document.querySelector(".cbx"); if (old) old.remove();
+    const el = document.createElement("div"); el.className = "cbx"; el.style.setProperty("--rc", rc); el.style.setProperty("--kc", CH_KC[kind] || CH_KC.azul);
+    el.innerHTML = `<div class="cbx-title"><small>Abrindo</small><b>${esc((C.CHEST_KINDS[kind] || {}).name || "Baú")}${list.length > 1 ? ` ×${list.length}` : ""}</b></div>
+      <div class="cbx-stage"><div class="cbx-rays"></div><div class="cbx-glow"></div><div class="cbx-floor"></div><i class="cbx-ring"></i><i class="cbx-ring r2"></i><i class="cbx-ring r3"></i><div class="cbx-beam"></div><div class="cbx-chest">${chestArt(kind, "big")}</div><div class="cbx-flash"></div>${Array.from({ length: 16 }, (_, i) => `<i class="cbx-p" style="--a:${Math.round(i * 22.5 + Math.random() * 14)}deg;--d:${110 + Math.round(Math.random() * 110)}px"></i>`).join("")}
+      <div class="cbx-item"><small class="cbx-pz">Prêmio!</small><i class="cbx-ic">${BL.itemSvg(best.item) || CH_SLOT_IC[best.item.slot] || "🎁"}</i><b>${esc(best.item.name)}</b><span class="cbx-rar">${rar(best.item.rarity).name}</span><em><u></u>+${fmt(gold)} Gold</em></div></div>
+      <small class="cbx-tap">Toque para continuar</small>`;
+    const t0 = Date.now(), close = () => { if (!el.isConnected) return; el.classList.add("out"); setTimeout(() => el.remove(), 250); };
+    el.addEventListener("click", () => { if (Date.now() - t0 > 2400) close(); });
+    document.body.appendChild(el); setTimeout(() => el.classList.add("boom"), 1900); setTimeout(close, 6500);
+    setTimeout(() => { if (el.isConnected) fxSnd("bau-abre"); }, 750); // v693: o estouro do áudio (1,15 s) cai junto com a explosão
   }
 
   // ---------- componentes ----------
@@ -95,6 +113,7 @@
     return (v < 10 ? (Math.floor(v * 10) / 10).toString().replace(".", ",") : Math.floor(v)) + u;
   }
   function healRow(p) {
+    if (C.HEAL_ONLY_HALFTIME) return `<div class="pc-heal" data-heal-row="${p.uid}" hidden></div>`; // v690 (Mickey): bebida só no Vestiário
     const e = G.healEnt(p.uid), c = G.cons(), wait = G.healWait(e);
     return `<div class="pc-heal" data-heal-row="${p.uid}">${Object.entries(C.CONSUMABLES).filter(([id, it]) => !it.chest || c[id] > 0).map(([id, it]) => { // v522: bebida de baú só aparece se tiver
       const off = !e || !c[id] || wait > 0 || e.energy >= 100;
@@ -646,7 +665,7 @@
     if (id === "tecnicos") { const d = C.COACHES.find((x) => x.id === C.COACH_DEFAULT) || C.COACHES[0]; return d ? img(d.src, "shx-tav") : fb; }
     return it && BL.anyItem(it) ? BL.itemSvg(BL.anyItem(it)) : fb; };
   const shopArt = (id, fb) => BL.IT2[id] != null ? BL.it2Art(id) : SHOP_ART.includes(id) ? `<img class="shx-px" src="img/loja/${id}.png?v=${BL.BUILD}" alt="">` : BL.WC_SPR[id] != null ? BL.wcArt(id) : fb; // v525: contratos da Bancada
-  const SUP_HOW = { energia: () => `Use no card do jogador durante a partida (${C.HEAL_COOLDOWN} s entre usos). A Cura automática (VIP) usa sozinha quando a energia cai abaixo de ${C.HEAL_AUTO_BELOW}.`, roubo: () => "Sem uma Proposta ou contrato equipado não dá para roubar. Equipe 1 aqui: fica equipado e gasta 1 a cada vitória em que você tenta o roubo, até acabar.", nivel: () => "Use na Mochila: o jogador escolhido sobe 1 nível na hora.", ficha: () => "Junte fichas da mesma cor e troque na Mochila por 1 equipamento daquela raridade.", xp: () => "Use na Mochila: escolha o jogador que recebe o XP." };
+  const SUP_HOW = { energia: () => (C.HEAL_ONLY_HALFTIME ? `Use no intervalo da partida, no Vestiário. A Cura automática (VIP) usa sozinha durante a partida quando a energia cai abaixo de ${C.HEAL_AUTO_BELOW}.` : `Use no card do jogador durante a partida (${C.HEAL_COOLDOWN} s entre usos). A Cura automática (VIP) usa sozinha quando a energia cai abaixo de ${C.HEAL_AUTO_BELOW}.`), roubo: () => "Sem uma Proposta ou contrato equipado não dá para roubar. Equipe 1 aqui: fica equipado e gasta 1 a cada vitória em que você tenta o roubo, até acabar.", nivel: () => "Use na Mochila: o jogador escolhido sobe 1 nível na hora.", ficha: () => "Junte fichas da mesma cor e troque na Mochila por 1 equipamento daquela raridade.", xp: () => "Use na Mochila: escolha o jogador que recebe o XP." };
   function shopEntries() {
     const s = G.state, c = G.cons(), co = G.coach(), sell = shopUi.mode === "vender", out = [], inv = {};
     s.inventory.forEach((id) => { inv[id] = (inv[id] || 0) + 1; });
@@ -719,12 +738,17 @@
     if (e.kind === "item") {
       const ci = BL.ITEM_BY_ID[e.id].ci, ros = G.state.roster.filter((p) => !ci || BL.charItemOk(p, BL.ITEM_BY_ID[e.id])).sort((a, b) => BL.power(b) - BL.power(a)); if (!bagUi.who || !ros.some((p) => p.uid === bagUi.who)) bagUi.who = (ros.find((p) => G.activePlayers().includes(p)) || ros[0] || {}).uid; // v527: item de personagem só no dono Épico+
       const who = G.player(bagUi.who), cur = who && who.items[BL.ITEM_BY_ID[e.id].slot];
-      act = `<div class="bg-box"><small class="bg-k">Status</small><label class="pc-sel bg-who"><select data-bag-who aria-label="Jogador">${ros.map((p) => `<option value="${p.uid}" ${p.uid === bagUi.who ? "selected" : ""}>${esc(p.short || p.name)} · Nv ${p.level}</option>`).join("")}</select></label><p>${cur ? `Hoje usa: <b>${esc(BL.ITEM_BY_ID[cur].name)}</b> (volta para a mochila)` : `${BL.ITEM_SLOTS[BL.ITEM_BY_ID[e.id].slot] || "Espaço de personagem"} livre`}</p></div>
-        <button type="button" class="bg-go" data-bag-equip="${e.id}">Equipar no jogador</button>`;
+      // v694 (Mickey): escolher o jogador em quadradinhos; bolinha verde = já tem item equipado; embaixo, os itens dele com Retirar
+      const hasIt = (p) => Object.values(p.items || {}).some(Boolean), eqs = who ? Object.entries(who.items || {}).filter(([, id]) => id && BL.ITEM_BY_ID[id]) : [];
+      act = `<div class="bg-box"><small class="bg-k">Equipar em quem?</small><div class="bg-pls">${ros.map((p) => `<button type="button" class="bg-pl${p.uid === bagUi.who ? " on" : ""}" data-bag-whob="${p.uid}" title="${esc(p.name)} · Nv ${p.level}${hasIt(p) ? " · tem item equipado" : ""}">${tok(p.charId, p.initials, rar(p.rarity).color)}${hasIt(p) ? `<i class="eq-dot" aria-label="Tem item equipado"></i>` : ""}<small>${esc(p.short || p.name)}</small></button>`).join("")}</div>
+        <p class="bg-leg"><i class="eq-dot"></i> bolinha verde = já tem item equipado</p>
+        <p>${cur ? `${esc(who.short)} hoje usa: <b>${esc(BL.ITEM_BY_ID[cur].name)}</b> (volta para a mochila)` : `${BL.ITEM_SLOTS[BL.ITEM_BY_ID[e.id].slot] || "Espaço de personagem"} de ${esc(who ? who.short : "")} livre`}</p></div>
+        <button type="button" class="bg-go" data-bag-equip="${e.id}">Equipar em ${esc(who ? who.short : "jogador")}</button>
+        ${eqs.length ? `<div class="bg-box"><small class="bg-k">Itens em ${esc(who.short)}</small>${eqs.map(([k, id]) => `<div class="bg-unq"><span><b>${esc(BL.ITEM_BY_ID[id].name)}</b><small>${BL.ITEM_SLOTS[k] || "Personagem"}</small></span><button type="button" class="btn" data-bag-unq="${who.uid}|${k}">Retirar</button></div>`).join("")}</div>` : ""}`;
       if (ci && !ros.length) act = `<div class="bg-box"><small class="bg-k">Status</small><p>Só ${esc(BL.ITEM_BY_ID[e.id].who)} de raridade Épica ou acima pode usar. Você ainda não tem esse jogador.</p></div>`;
     } else if (e.kind === "mgr") { // v473: espaços do treinador
       const eq = G.mgrEq(), fx = G.mgrFx(), tot = Object.entries(fx).map(([k, v]) => BL.mgrFxTxt(k, v)).join(" · ") || "nenhum bônus";
-      act = `<div class="bg-box"><small class="bg-k">Treinador · ${esc(tot)}</small><div class="bg-mgr">${eq.map((id, i) => { const q = BL.MGR_BY_ID[id];
+      act = `<div class="bg-box"><small class="bg-k">Treinador · ${esc(tot)}</small>${C.MGR_CONSUME ? `<p>Cada item equipado vale por 1 partida: jogou, gastou. Se houver outro igual na Mochila, ele entra sozinho no lugar.</p>` : ""}<div class="bg-mgr">${eq.map((id, i) => { const q = BL.MGR_BY_ID[id];
         return `<div class="bg-mslot" style="--rc:${q ? rar(q.rarity).color : "#3a4570"}"><span class="bg-mart">${q ? BL.itemSvg(q) : ""}</span><b>${q ? esc(q.name) : `Espaço ${i + 1} livre`}</b>${q ? `<button type="button" class="pc-x" data-mgr-un="${i}" aria-label="Tirar">✕</button>` : ""}${e.n ? `<button type="button" class="bg-mput" data-mgr-eq="${e.id}|${i}">${q ? "Trocar" : "Equipar"}</button>` : ""}</div>`; }).join("")}</div></div>`;
     } else if (e.kind === "sup" && e.cat === "roubo") { const on = G.stealArmed() === e.id; // v526: 1 espaço só (Proposta ou contrato) // v475
       act = `<div class="bg-box"><small class="bg-k">Status</small><p>${on ? `Equipado: gasta 1 a cada vitória em que você tenta o roubo. Restam ${e.n}.` : SUP_HOW.roubo()}</p></div><button type="button" class="bg-go ${on ? "alt" : ""}" data-bag-arm="${e.id}">${on ? "Tirar" : "Equipar para roubar"}</button>`;
@@ -743,7 +767,7 @@
   const CH_ORDER = ["lendario", "epico", "azul", "padrao"], CH_TAB = { padrao: "Comuns", azul: "Raros", epico: "Épicos", lendario: "Lendários" };
   const CH_COLOR = { padrao: "#e8eeff", azul: "#3f9bff", epico: "#b06bff", lendario: "#ffb02e" };
   const espUi = { cat: "todos", sel: null };
-  const ESB = { lendario: 0, epico: 1, azul: 2, padrao: 3 }, esChest = (k, big) => `<i class="esb" style="--i:${big && k === "azul" ? 4 : ESB[k] ?? 3}" aria-hidden="true"></i>`; // v666 (Mickey): baús da arte dele (img/baus.png)
+  const ESB = { lendario: 0, epico: 1, azul: 2, padrao: 3 }, esChest = (k) => `<i class="esb" style="background:url('img/baus/bau-${CH_PAL[k] ? k : "padrao"}.png?v=${BL.BUILD}') center / contain no-repeat" aria-hidden="true"></i>`; // v692: baú 3D (img/baus/), o mesmo da animação de abrir; // v666 (Mickey): baús da arte dele (img/baus.png)
   const espCount = (k) => G.state.chests.filter((c) => (c.kind || "azul") === k).length;
   function espLeftHtml(k) {
     const K = C.CHEST_KINDS[k], n = espCount(k), tot = Object.values(K.weights).reduce((a, b) => a + b, 0);
@@ -752,6 +776,7 @@
     return `<small class="bg-k c">Espólios</small><h4 class="bg-name">${K.name}</h4><div class="bg-have"><small>Guardados</small><b>× ${fmt(n)}</b></div>
       <div class="bg-stage es-stage" style="--rc:${CH_COLOR[k]}"><i class="es-ring"></i>${esChest(k, true)}<span class="bg-rar">${CH_TAB[k].replace(/s$/, "")}</span></div>
       <div class="bg-box"><small class="bg-k">Recompensa</small><p>1 item + ${K.gold[0]} a ${K.gold[1]} Gold</p><div class="es-odds">${odds}</div></div>
+      ${C.CHEST_PITY ? (() => { const N = C.CHEST_PITY.lendario, v = Math.min(N, G.state.chestPity || 0); return `<div class="bg-box"><small class="bg-k">Sorte do Baú Lendário</small><div class="es-odd" style="--rc:#ffd23f" title="Ao completar, o próximo baú que você ganhar vira Lendário"><span>${v}/${N} baús</span><i><b style="width:${(v / N) * 100}%"></b></i><em>${Math.round((v / N) * 100)}%</em></div></div>`; })() : ""}
       <div class="es-acts"><button type="button" class="bg-go es-one" data-esp-open="${k}" ${n ? "" : "disabled"}>Abrir 1</button><button type="button" class="bg-go" data-chest-all="${k}" ${n ? "" : "disabled"}>Abrir todos</button></div>`;
   }
   function bagRegrid() { const all = bagEntries(), g = $("bagGrid"); if (g) g.innerHTML = bagGridHtml(all); }
@@ -925,6 +950,7 @@
   const bossShake = () => { document.body.classList.remove("bo-shake"); void document.body.offsetWidth; document.body.classList.add("bo-shake"); setTimeout(() => document.body.classList.remove("bo-shake"), 900); };
   const BOSS_HOLD = { name: "Yoichi Isagi", initials: "YI", title: "Visão de jogo", color: "#26D9FF", hp: 2100000000, minDmg: 210000 };
   let swapIn = null; // jogador esperando escolher quem sai
+  let eqUnq = null; // v694: uid com a lista "Retirar itens" aberta
   let eqUid = null; // v276: jogador escolhido na tela Meu time
   let eqView = "team"; // v455: Meu time → Escalação, Com a bola, Sem a bola
   const trUi = { a: null, b: [], slot: "a0", pos: "all" }; // v295: rascunho da janela Escolher quem treina
@@ -1085,7 +1111,7 @@
         ${pcFig(p)}<span class="pc-lv">${p.level}</span>${st === "time" ? `<span class="pc-tag t" title="Na equipe">★</span>` : st === "exp" ? `<span class="pc-tag" title="Em expedição">🧭</span>` : st === "boss" ? `<span class="pc-tag" title="No Boss">♛</span>` : ""}${Object.values(p.items || {}).some(Boolean) ? `<span class="pc-it" title="Com item">🎒</span>` : ""}<span class="pc-nm">${esc(p.short)}</span></button>`; }).join("");
   }
   // v583 (Mickey) · aba Marcos: Maestria 1 a 10 por jogador (igual LoL), só cosmético; objetivos pela posição
-  const pcTabs = () => `<div class="pc-tabs">${[["elenco", "Elenco"], ["marcos", "Marcos"]].map(([k, n]) => `<button type="button" class="pc-tab ${pcUi.tab === k ? "on" : ""}" data-pc-tab="${k}">${n}</button>`).join("")}</div>`;
+  const pcTabs = () => `<div class="pc-tabs">${[["elenco", "Elenco"], ["marcos", "Marcos"], ["dex", "Coleção"]].map(([k, n]) => `<button type="button" class="pc-tab ${pcUi.tab === k ? "on" : ""}" data-pc-tab="${k}">${n}</button>`).join("")}</div>`;
   const mstCol = (l) => (l >= 10 ? "#ffd23f" : l >= 7 ? "#7d8bff" : l >= 4 ? "#26D9FF" : "#8ea2cf");
   function mstInfo(p) { const M = C.MASTERY, l = G.mastLv(p), pts = p.mast || 0, lo = M.need[l - 1], hi = M.need[l]; return { l, pts, lo, hi, pct: hi ? Math.min(100, ((pts - lo) / (hi - lo)) * 100) : 100, col: mstCol(l) }; }
   const mstBadge = (l, big) => `<span class="mst-b${big ? " big" : ""}" style="--mc:${mstCol(l)}"><i>${l}</i></span>`;
@@ -1106,6 +1132,29 @@
       <div class="pc-main"><div class="pct-left">${left}</div><div class="pc-right"><div class="mst-head"><b>Marcos</b><span>Cada posição sobe com o próprio objetivo. Quanto maior a maestria, mais difícil chegar na próxima.</span></div><div class="mst-grid">${grid}</div></div></div>
     </div>`);
   }
+  // v708 (Mickey) · aba Coleção (estilo Pokédex): cada personagem clicável mostra as raridades que você já teve dele
+  function pcKeepScroll() { // v709: redesenha o PC sem perder a rolagem da grade e da janela
+    const g = document.querySelector("#modalBody .mst-grid"), gy = g ? g.scrollTop : 0, ups = [];
+    for (let e = $("modalBody"); e && e !== document.body; e = e.parentElement) ups.push([e, e.scrollTop]);
+    MODALS.players(); const g2 = document.querySelector("#modalBody .mst-grid"); if (g2) g2.scrollTop = gy; ups.forEach(([e, y]) => { e.scrollTop = y; });
+  }
+  function pcDex() {
+    const d = G.dex(), R = C.RARITIES, list = BL.CHARACTERS.slice().sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+    const got = (id) => R.filter((r) => d[id] && d[id][r.id]); if (!list.some((c) => c.id === pcUi.dex)) pcUi.dex = (list.find((c) => d[c.id]) || list[0] || {}).id;
+    const seen = list.filter((c) => d[c.id]).length, tot = list.length * R.length, have = list.reduce((a, c) => a + got(c.id).length, 0);
+    const fig = (c, big) => (C.SPRITES[c.id] ? `<span class="pc-fig${big ? " big" : ""}${d[c.id] ? "" : " dex-off"}"><img src="${C.SPRITES[c.id].card}" alt=""></span>` : `<span class="pc-fig ini${big ? " big" : ""}${d[c.id] ? "" : " dex-off"}">${esc((c.name || "?").slice(0, 2))}</span>`);
+    const c = list.find((x) => x.id === pcUi.dex); let left = "";
+    if (c) { const g = got(c.id), best = g[g.length - 1];
+      left = `<div class="pc-hero mst-hero" style="--rc:${best ? best.color : "#4a5675"}"><div class="pc-chips"><span>${esc(posName(c.position))}</span></div>${fig(c, true)}
+        <b class="pct-name">${d[c.id] ? esc(c.name) : "???"}</b><div class="mst-lv">${g.length} de ${R.length} raridades</div></div>
+        <div class="pc-box dex-rars">${R.map((r) => `<span class="dex-r ${d[c.id] && d[c.id][r.id] ? "on" : ""}" style="--rc:${r.color}"><i></i>${esc(r.name)}<b>${d[c.id] && d[c.id][r.id] ? "✓" : "—"}</b></span>`).join("")}<p>${d[c.id] ? "Roube ou ganhe este personagem em outras raridades para completar a linha." : "Você ainda não teve este personagem. Roube ele de um adversário."}</p></div>`; }
+    const grid = list.map((x) => { const g = got(x.id);
+      return `<button type="button" class="mst-card dex-card ${x.id === pcUi.dex ? "on" : ""} ${d[x.id] ? "" : "off"}" data-dex-pick="${x.id}">${fig(x)}<span class="mst-t"><b>${d[x.id] ? esc(x.name) : "???"}</b><span class="dex-dots">${R.map((r) => `<i style="--rc:${r.color}" class="${d[x.id] && d[x.id][r.id] ? "on" : ""}"></i>`).join("")}</span></span></button>`; }).join("");
+    openModal("PC do treinador", `<div class="pc mst">
+      <div class="pct-h"><h3>PC do treinador</h3>${pcTabs()}<button type="button" class="eq-x" data-eq-close aria-label="Fechar">✕</button></div>
+      <div class="pc-main"><div class="pct-left">${left}</div><div class="pc-right"><div class="mst-head"><b>Coleção</b><span>${seen} de ${list.length} personagens encontrados · ${have} de ${tot} raridades. Clique em um personagem para ver o que falta.</span></div><div class="mst-grid">${grid}</div></div></div>
+    </div>`);
+  }
   function pcLeftHtml() {
     const p = G.player(pcUi.sel); if (!p) return `<p class="pc-empty">Escolha um jogador.</p>`;
     const r = rar(p.rarity), need = C.playerXpToNext(p.level), pos = C.POSITIONS.find((x) => x.id === p.position), st = pcState(p), lineup = G.lineup();
@@ -1121,7 +1170,7 @@
         <div class="pc-xpl"><span class="pc-xpb"><i style="width:${Math.min(100, (p.xp / need) * 100)}%"></i></span><small>${fmt(p.xp)} / ${fmt(need)} XP</small></div>
       </div>
       <div class="pc-g2"><div class="pc-box pc-nat"><small>Natureza</small><b>${natureText(p.nature)}</b></div><div class="pc-box"><small>Poder</small><b>${fmt(BL.power(p))}</b></div></div>
-      <div class="pc-box pc-ivs"><small>IVs<br>${S.reduce((a, k) => a + p.stats[k], 0)}/${31 * S.length}</small><div>${S.map((k) => `<span class="${p.stats[k] >= 25 ? "hi" : p.stats[k] <= 10 ? "lo" : ""}"><i>${C.STAT_SHORT[k]}</i><b>${p.stats[k]}</b></span>`).join("")}</div></div>
+      <div class="pc-box pc-ivs"><small>IVs<b>${S.reduce((a, k) => a + p.stats[k], 0)}/${31 * S.length}</b></small><div>${S.map((k) => `<span class="${p.stats[k] >= 25 ? "hi" : p.stats[k] <= 10 ? "lo" : ""}"><i>${C.STAT_SHORT[k]}</i><b>${p.stats[k]}</b></span>`).join("")}</div></div>
       <div class="pc-box pc-items"><small>Itens</small><div>${items}</div></div>
       <div class="pc-acts">${act}<button type="button" class="pc-btn wide pc-ev" data-ev-open="${p.uid}">EV e status${BL.evTotal(p) ? ` · ${BL.evTotal(p)}` : ""}</button></div>`;
   }
@@ -1317,7 +1366,7 @@
       const S = G.skillSlots(), Lb = G.skLib(), rn = { raro: "Rara", epico: "Épica", lendario: "Lendária" }, on = (id) => S.some((x) => x && x.id === id);
       const slots = S.map((x, i) => { const d = x && BL.SKILLS[x.id]; return `<button type="button" class="hb-slot${d ? "" : " empty"}" data-hb-slot="${i}" ${d ? `style="--rc:${C.SKILL_RAR_COL[d.rar]}" title="Tirar ${esc(d.name)}"` : `title="Slot vazio"`}>${d ? `${skIco(x.id, 64)}<b>${esc(d.name)}</b><em>Nv ${Lb[x.id] ? Lb[x.id].lv : 1}</em>` : `<span class="hb-plus">+</span><b>Slot ${i + 1}</b><em>vazio</em>`}</button>`; }).join("");
       const cards = Object.keys(C.SKILL_DEF).map((id) => { const d = BL.SKILLS[id], own = !!Lb[id], lv = own ? Lb[id].lv : 1, cd = Math.max(5, d.cd - (lv - 1) * C.SKILL_LV.cd);
-        return `<button type="button" class="hb-card${on(id) ? " on" : ""}${own ? "" : " locked"}" data-hb-id="${id}" style="--rc:${C.SKILL_RAR_COL[d.rar]}" ${own ? "" : "disabled"}>${skIco(id, 76)}<div class="hb-tx"><div class="hb-top"><b>${esc(d.name)}</b>${on(id) ? `<span class="hb-tag">No time</span>` : ""}</div><span class="hb-rar">${rn[d.rar]} · ${!own && G.skLock(id) ? `🔒 ${G.skLock(id)}` : `Nv ${lv} · recarga ${cd} s`}</span><p>${esc(d.desc)}</p></div></button>`; }).join("");
+        return `<button type="button" class="hb-card${on(id) ? " on" : ""}${own ? "" : " locked"}" ${own ? `data-hb-id="${id}"` : G.skNeedClear(id) && !G.skNeed(id) ? `data-sk-buy="${id}"` : "disabled"} style="--rc:${C.SKILL_RAR_COL[d.rar]}">${skIco(id, 76)}<div class="hb-tx"><div class="hb-top"><b>${esc(d.name)}</b>${on(id) ? `<span class="hb-tag">No time</span>` : ""}</div><span class="hb-rar">${rn[d.rar]} · ${!own && G.skLock(id) ? `🔒 ${G.skLock(id)}` : `Nv ${lv} · recarga ${cd} s`}</span><p>${esc(d.desc)}</p></div></button>`; }).join("");
       openModal("Habilidades", `<div class="hb"><p class="hb-note">As habilidades são do time: escolha até ${S.length}. Na partida, quem estiver na melhor posição usa, sozinho, quando a recarga acaba.</p><div class="hb-slots">${slots}</div><div class="hb-grid">${cards}</div></div>`);
     },
     lideres() { gyOpen(); }, // v622
@@ -1384,7 +1433,7 @@
         // v435: piso verde = posição certa, amarelo = mesmo setor (Fixo/Ala Def ou Ala Of/Pivô), vermelho = setor trocado
         const fitC = p && sp ? (() => { const k = C.LINEUP_POS.indexOf(p.position), j = C.LINEUP_POS.indexOf(sp.id); return k === j ? "#3ddc84" : (k < 2) === (j < 2) ? "#ffc83d" : "#ff4d5e"; })() : ""; // v434: vaga = posição; clicar na posição leva o escolhido para ela
         const lab = sp ? `<button type="button" class="eq-pos ${p && cu >= 0 && cu !== i ? "go" : ""}" ${p && cu >= 0 && cu !== i ? `data-eq-swap="${cu}|${i}" title="Levar ${esc(ps[cu].short)} para ${esc(sp.name)}"` : "disabled"}>${esc(sp.name)}</button>` : "";
-        slots.push(`<div class="eq-col">` + (p ? `<button type="button" class="eq-slot ${p.uid === eqUid ? "on" : ""}" data-eq-pick="${p.uid}" draggable="false" data-eq-drag="${i}" style="--rc:${rar(p.rarity).color};--fit:${fitC}"><span class="eq-fig">${fig(p)}</span><span class="eq-plat"></span><b class="eq-name">${esc(p.short)}</b></button>`
+        slots.push(`<div class="eq-col">` + (p ? `<button type="button" class="eq-slot ${p.uid === eqUid ? "on" : ""}" data-eq-pick="${p.uid}" draggable="false" data-eq-drag="${i}" style="--rc:${rar(p.rarity).color};--fit:${fitC}"><span class="eq-fig">${fig(p)}</span><span class="eq-plat"></span><b class="eq-name">${esc(p.short)}</b>${Object.values(p.items || {}).some(Boolean) ? `<i class="eq-dot" title="Tem item equipado" aria-label="Tem item equipado"></i>` : ""}</button>`
           : `<button type="button" class="eq-slot empty" data-open="players"><span class="eq-fig"><span class="eq-plus">+</span></span><span class="eq-plat"></span><b class="eq-name">Escalar</b></button>`) + lab + `</div>`);
       }
       let info = `<div class="eq-info eq-none">Escale um jogador para ver os detalhes.</div>`;
@@ -1411,9 +1460,10 @@
         <div class="eq-views">${[["team", "Escalação"], ["com", "Com a bola"], ["sem", "Sem a bola"]].map(([k, n]) => `<button type="button" class="${eqView === k ? "on" : ""}" data-eq-view="${k}">${n}</button>`).join("")}</div>
         ${eqView === "team" ? `<div class="eq-stage"><div class="eq-row">${slots.join("")}</div></div>
         ${info}` : eqBoard(eqView, ps)}
+        ${cur && eqUnq === cur.uid && Object.values(cur.items || {}).some(Boolean) ? `<div class="eq-unq"><small>Itens equipados em ${esc(cur.short)}</small>${Object.entries(cur.items).filter(([, id]) => id && BL.ITEM_BY_ID[id]).map(([k, id]) => `<div class="bg-unq"><span><b>${esc(BL.ITEM_BY_ID[id].name)}</b><small>${BL.ITEM_SLOTS[k] || "Personagem"}</small></span><button type="button" class="btn" data-eq-unq1="${cur.uid}|${k}">Retirar</button></div>`).join("")}<button type="button" class="btn" data-eq-unequip="${cur.uid}">Retirar todos</button></div>` : ""}
         <div class="eq-act${eqView === "team" ? " has-bench" : ""}">
           <button type="button" class="eq-b" ${cur && ps.length > 1 ? `data-eq-out="${cur.uid}"` : "disabled"}>Tirar do time</button>
-          <button type="button" class="eq-b" ${cur && Object.values(cur.items || {}).some(Boolean) ? `data-eq-unequip="${cur.uid}"` : `disabled title="Sem itens equipados"`}>Retirar item</button>
+          <button type="button" class="eq-b" ${cur && Object.values(cur.items || {}).some(Boolean) ? `data-eq-unq-open="${cur.uid}"` : `disabled title="Sem itens equipados"`}>Retirar itens</button>
           <button type="button" class="eq-b eq-pc" data-open="players"><img src="img/menu/pc.png" alt=""> Abrir PC</button>
           ${eqView !== "team" ? "" : `<div class="eq-bench"><small>Reservas</small><div>${Array.from({ length: C.BENCH_SIZE }, (_, i) => G.bench()[i]).map((p) => p ? `<button type="button" class="eq-bp" data-eq-bdrag="${p.uid}" title="Arraste ${esc(p.short)} para uma posição" style="--rc:${rar(p.rarity).color}"><span class="eq-fig">${fig(p)}</span><b>${esc(p.short)}</b></button>` : `<button type="button" class="eq-bp empty" data-open="players"><span class="eq-fig"><span class="eq-plus">+</span></span><b>Reserva</b></button>`).join("")}</div></div>`}
         </div>
@@ -1451,6 +1501,7 @@
     // Escalar com o time cheio pergunta quem sai (swapIn): os cards da equipe viram "Sai este".
     players() {
       if (pcUi.tab === "marcos") return pcMarcos(); // v583
+      if (pcUi.tab === "dex") return pcDex(); // v708
       const s = G.state, limit = G.lineupLimit(), lineup = G.lineup();
       if (!s.roster.some((p) => p.uid === pcUi.sel)) pcUi.sel = lineup[0] || (s.roster[0] && s.roster[0].uid);
       const inP = swapIn && G.player(swapIn);
@@ -1522,13 +1573,16 @@
     pitches() { // v312: Seus mapas (campos com efeito na partida). Fora do dev só o Estádio está liberado
       const cur = G.pitchId();
       openModal("Seus mapas", `<div class="sm">
-        <div class="sm-h"><div><span class="sm-k">Campos</span><h2>Seus mapas</h2><p>Cada campo muda a partida para os dois times. O Boss sempre joga na arena dele.</p></div>
+        <div class="sm-h"><div><span class="sm-k">Campos</span><h2>Seus mapas</h2><p>Cada campo muda a partida para os dois times. Cada Boss joga no campo da casa dele. Libere um campo por ${fmt(C.PITCH_COST.gold)} Gold ou ${C.PITCH_COST.dia} Diamantes.</p></div>
           <button type="button" class="eq-x" data-eq-close aria-label="Fechar">✕</button></div>
         <div class="sm-grid">${C.PITCHES.map((pt) => { const on = pt.id === cur, ok = G.pitchUnlocked(pt.id);
-          return `<button type="button" class="sm-card${on ? " on" : ""}${ok ? "" : " lock"}" ${ok && !on ? `data-pitch="${pt.id}"` : ""} ${ok ? "" : "disabled"}>
+          const home = Object.keys(C.BOSS_HOME || {}).filter((id) => C.BOSS_HOME[id] === pt.id).map((id) => (BL.CHAR_BY_ID[id] || {}).short || id).join(" e "), hm = home ? `<small class="sm-home">Casa de ${esc(home)}</small>` : "", K = C.PITCH_COST;
+          if (!ok) return `<div class="sm-card lock"><span class="sm-img" style="background-image:url('${pt.img}')"></span><span class="sm-tag">🔒 Bloqueado</span><b>${pt.name}</b><small>${pt.desc}</small>${hm}
+            <span class="sm-buy"><button type="button" class="btn" data-pitch-buy="${pt.id}:gold"><i class="ic-coin"></i> ${fmt(K.gold)}</button><button type="button" class="btn" data-pitch-buy="${pt.id}:dia"><i class="ic-dia"></i> ${K.dia}</button></span></div>`; // v693: compra por Gold ou Diamantes
+          return `<button type="button" class="sm-card${on ? " on" : ""}" ${!on ? `data-pitch="${pt.id}"` : ""}>
             <span class="sm-img" style="background-image:url('${pt.img}')"></span>
-            <span class="sm-tag">${on ? "Jogando agora" : ok ? "Jogar aqui" : "🔒 Bloqueado"}</span>
-            <b>${pt.name}</b><small>${pt.desc}</small></button>`; }).join("")}</div>
+            <span class="sm-tag">${on ? "Jogando agora" : "Jogar aqui"}</span>
+            <b>${pt.name}</b><small>${pt.desc}</small>${hm}</button>`; }).join("")}</div>
         <div class="sm-ft"><button type="button" class="btn${G.state.training ? " btn-hot" : ""}" data-hub-go data-hub-train>${G.state.training ? "Sair do treino" : "Modo treino"}</button><button type="button" class="btn" data-open="maps">Ver fases do mapa</button></div></div>`);
     },
     bench(i) { // v310: janela Reservas no layout da ref do Mickey (busca, filtros, ordenação e lista em linhas)
@@ -1704,6 +1758,8 @@
           <form class="team-form" id="teamForm" hidden><label class="name-field"><span>Nome do time (mín. ${C.NAME_MIN})</span><input id="teamInput" type="text" maxlength="22" value="${esc(G.teamName())}" autocomplete="off"></label><label class="name-field tag-field"><span>Tag (até ${C.TEAM_TAG_MAX} letras)</span><input id="tagInput" type="text" maxlength="${C.TEAM_TAG_MAX}" value="${esc(G.teamTag())}" autocomplete="off" autocapitalize="characters"></label><button type="submit" class="btn btn-hot">Confirmar</button></form>
           <p class="pf-note" id="teamNote">${G.renameCost() ? `Você já usou a troca grátis. Cada nova troca custa ${G.renameCost()} Diamantes.` : "A primeira troca é grátis. Depois disso, cada troca custa " + C.TEAM_RENAME_DIAMONDS + " Diamantes."}</p>
         </div>
+        ${C.TITLES ? `<div class="pf-card pf-tit"><div class="pf-jh"><div><span class="pf-lbl">Títulos</span><h3>Conquiste e use como nome do time</h3></div></div><div class="pf-tits">${C.TITLES.map((x) => { const v = Math.min(x.n, G.titleVal(x)), ok = v >= x.n, on = G.teamName() === x.name;
+          return `<div class="pf-ti ${ok ? "ok" : ""} ${on ? "on" : ""}"><b>${ok ? "" : "🔒 "}${esc(x.name)}</b><small>${esc(x.desc)} · ${fmt(v)}/${fmt(x.n)}</small>${ok ? (on ? `<em>Em uso</em>` : `<button type="button" class="pf-btn" data-title-use="${x.id}">Usar como nome</button>`) : `<i style="--w:${(v / x.n) * 100}%"></i>`}</div>`; }).join("")}</div></div>` : ""}
         <div class="pf-card pf-jr">
           <div class="pf-jh"><div><span class="pf-lbl">Jornada</span><h3>Seus números no BL PROJECT</h3></div><span class="pf-act">${act} / ${C.TRAINING_MAX} no time</span></div>
           <div class="pf-grid">${tile("⚽", fmt(s.matchNo || 0), "Partidas jogadas")}${tile("🏆", fmt(ca.wins), "Vitórias")}${tile("🥅", fmt(ca.goals), "Gols marcados")}${tile("🎯", fmt(ca.steals), "Jogadores roubados")}${tile("👥", s.roster.length, "Jogadores no elenco")}${tile("✨", s.roster.filter((p) => p.shiny).length, "Shinies obtidos")}${tile("👑", fmt(s.progress.bossWins || 0), "Bosses vencidos")}${tile("🗺️", `${atos} / ${C.MAPS.length}`, "Atos zerados")}</div>
@@ -1755,7 +1811,7 @@
       const env = `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="8" width="24" height="17" rx="2.5" fill="#dff2ff" stroke="#8fc8ff" stroke-width="1.5"/><path d="M5 10l11 8 11-8" fill="none" stroke="#3f8fe0" stroke-width="2" stroke-linejoin="round"/></svg>`;
       const gem = `<svg class="dm-gem" viewBox="0 0 24 18" aria-hidden="true"><path d="M0 7 6 1h12l6 6-12 10.5z" fill="#7fe0ff"/><path d="M6 1h12l-2 3.5H8z" fill="#fff"/><path d="M0 7h24L12 17.5z" fill="#3fb4ff"/><path d="M8 4.5h8L12 17.5z" fill="#c9f6ff"/></svg>`;
       const when = (t) => new Date(t).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" });
-      const gift = (g) => [g.gold ? `${fmt(g.gold)} Gold` : "", g.diamonds ? `${fmt(g.diamonds)} ${gem}` : ""].filter(Boolean).join(" + ");
+      const gift = (g) => [g.gold ? `${fmt(g.gold)} Gold` : "", g.diamonds ? `${fmt(g.diamonds)} ${gem}` : ""].concat(Object.entries(g.items || {}).map(([k, n]) => `${fmt(n)}× ${esc((C.SUPPLIES[k] || C.CONSUMABLES[k] || { name: k }).name)}`)).filter(Boolean).join(" + "); // v690: itens
       openModal("Correio", `<div class="ml">
         <div class="ml-h"><span class="ml-hi">${env}</span><div class="ml-ht"><span class="dm-k">Mensagens e presentes</span><h2>Correio</h2><p>Avisos do sistema e recompensas para resgatar.</p></div>
           <div class="ml-bal"><span class="ml-coin" aria-hidden="true"></span><b>${fmt(st.gold)}</b></div><div class="ml-bal">${gem}<b>${fmt(st.diamonds || 0)}</b><button type="button" data-open="buyDiamonds" aria-label="Comprar Diamantes">+</button></div><button type="button" class="dm-x" data-eq-close aria-label="Fechar">✕</button></div>
@@ -1860,9 +1916,9 @@
       const R = C.DAILY_REWARDS, L = R.length, M = C.DAILY_MILESTONES, can = G.dailyCan(), got = G.dailyShown();
       const next = Math.min(L, got + 1), rw = R[next - 1], streak = G.dailyStreak(), done = !can && got >= L;
       // v651 (Mickey: Diária combinando com a Loja): mesma moldura da Loja (cabeçalho com saldos, painel do prêmio à esquerda, calendário em cards à direita) e arte do jogo no lugar dos emojis
-      const art = (r) => r.k === "gold" ? `<img class="dyx-img" src="img/gold.png" alt="">` : r.k === "diamantes" ? `<img class="dyx-img" src="img/menu/diamantes.png" alt="">` : r.k === "xp" ? `<span class="dyx-svg">${DX_SVG.xp}</span>` : r.k === "boneco" ? `<img class="dyx-img" src="img/menu/pc.png" alt="">` : shopArt(r.k, C.CONSUMABLES[r.k].icon);
+      const art = (r) => r.k === "gold" ? `<img class="dyx-img" src="img/gold.png" alt="">` : r.k === "diamantes" ? `<img class="dyx-img" src="img/menu/diamantes.png" alt="">` : r.k === "xp" ? `<span class="dyx-svg">${DX_SVG.xp}</span>` : r.k === "boneco" ? `<img class="dyx-img" src="img/menu/pc.png" alt="">` : r.k === "chest" ? chestArt(r.id) : r.k === "sup" ? `<span class="dyx-svg" style="font-size:46px;line-height:1">${C.SUPPLIES[r.id].icon}</span>` : shopArt(r.k, C.CONSUMABLES[r.k].icon);
       const KC = { gold: "#f5c542", diamantes: "#26D9FF", xp: "#3fd29b", agua: "#4aa8ff", gatorade: "#ff9a3c" };
-      const info = (r) => r.k === "gold" ? { n: fmt(r.n), t: "Gold", d: "Moedas para a Loja." } : r.k === "diamantes" ? { n: fmt(r.n), t: "Diamantes", d: "Para técnicos, boosts e a Loja de Diamantes." } : r.k === "xp" ? { n: fmt(r.n), t: "XP do time", d: "Dividido entre os jogadores do time." } : r.k === "boneco" ? { n: "1", t: `Jogador ${rar(r.rarity).name}`, c: rar(r.rarity).color, d: `Um jogador ${rar(r.rarity).name.toLowerCase()} aleatório entra no seu elenco.` } : { n: fmt(r.n), t: C.CONSUMABLES[r.k].name, d: C.CONSUMABLES[r.k].desc + " de um jogador na partida." };
+      const info = (r) => r.k === "gold" ? { n: fmt(r.n), t: "Gold", d: "Moedas para a Loja." } : r.k === "diamantes" ? { n: fmt(r.n), t: "Diamantes", d: "Para técnicos, boosts e a Loja de Diamantes." } : r.k === "xp" ? { n: fmt(r.n), t: "XP do time", d: "Dividido entre os jogadores do time." } : r.k === "boneco" ? { n: "1", t: `Jogador ${rar(r.rarity).name}`, c: rar(r.rarity).color, d: `Um jogador ${rar(r.rarity).name.toLowerCase()} aleatório entra no seu elenco.` } : r.k === "chest" ? { n: fmt(r.n), t: C.CHEST_KINDS[r.id].name, d: "Vai para os Espólios. Abra para ganhar Gold e um item." } : r.k === "sup" ? { n: fmt(r.n), t: C.SUPPLIES[r.id].name, d: C.SUPPLIES[r.id].desc || "Vai para a Mochila." } : { n: fmt(r.n), t: C.CONSUMABLES[r.k].name, d: C.CONSUMABLES[r.k].desc + " de um jogador na partida." };
       const col = (r) => info(r).c || KC[r.k] || "#7fd8ff";
       const hi = info(rw), mk = M.find((d) => d > got) || null;
       const nodes = M.map((d) => `<i style="left:${(d / L) * 100}%" class="${d <= got ? "on" : ""}"><em>${d}</em></i>`).join("");
@@ -1873,7 +1929,7 @@
       const left = `<div class="shx-lhead"><h4 class="bg-name">${hi.n} ${esc(hi.t)}</h4><small class="bg-k c">${done ? "Ciclo completo" : can ? "Prêmio de hoje" : "Prêmio de amanhã"} · Dia ${next} de ${L}</small></div>
           <div class="bg-stage shx-stage dyx-stage" style="--rc:${col(rw)}">${art(rw)}<span class="bg-rar">${can ? "Disponível" : "Amanhã"}</span></div>
           <div class="shx-info"><div class="shx-sec"><h5>O que é</h5><p>${esc(hi.d)}</p></div>
-            <div class="dyx-stats"><div><small>Sequência</small><b>${streak}</b><span>dia(s) seguidos</span></div><div><small>Ciclo</small><b>${got}/${L}</b><span>${L - got} restante(s)</span></div></div>
+            <div class="dyx-stats"><div><small>Sequência</small><b>${streak}</b><span>dia(s) seguidos</span></div>${C.DAILY_STREAK ? `<div><small>Moedas da sequência</small><b>+${fmt(G.dailyBonus(can ? streak + 1 : streak))}</b><span>${can ? "no resgate de hoje" : `amanhã +${fmt(G.dailyBonus(streak + 1))}`}</span></div>` : ""}<div><small>Ciclo</small><b>${got}/${L}</b><span>${L - got} restante(s)</span></div></div>
             <div class="shx-sec"><h5>Próximo marco ★</h5><p>${mk ? `Dia ${mk}, faltam ${mk - got} resgate(s): ${info(R[mk - 1]).n} ${esc(info(R[mk - 1]).t)}` : "Ciclo completo. Um novo começa amanhã."}</p></div>
             <div class="shx-sec"><h5>Regra</h5><p>1 resgate por dia. Se passar um dia sem resgatar, a sequência volta a zero, mas o ciclo continua de onde parou.</p></div></div>
           <div class="shx-buy"><div class="shx-row"><small>Próximo prêmio em</small><b class="dyx-left" id="dyLeft">${dyLeft()}</b></div>${can ? `<button type="button" class="bg-go dyx-go" data-daily-claim="1">Resgatar · ${hi.n} ${esc(hi.t)}</button>` : `<button type="button" class="bg-go" disabled>Resgatado hoje</button>`}</div>`;
@@ -1907,7 +1963,9 @@
         return `<div class="ms-row ms-sub ${st}"><span class="ms-n">${st === "done" ? "✓" : j + 1}</span><div><b>${esc(x.goal)}</b><small>${esc(x.line)}</small></div><div class="ms-rws">${x.rw.map(rw).join("")}</div></div>`; }).join("");
       const row = (c, k) => { const st = k < cc ? "done" : k === cc ? "cur" : "lock", n = inCh(k).filter(([, i]) => i < m.i).length;
         return `<div class="ms-row ${st}"><span class="ms-n">${st === "done" ? "✓" : k + 1}</span><div><b>${esc(c.title)}</b><small>${st === "lock" ? "Bloqueado" : `${n} de ${inCh(k).length} missões`} · ${esc(c.who)}</small></div><div class="ms-rws">${c.rw.map(rw).join("")}</div></div>${st === "cur" ? `<div class="ms-subs">${sub(k)}</div>` : ""}`; };
-      openModal("Missões", `<div class="ms">${hero}<div class="ms-lh"><h4>Capítulos</h4><small>Em ordem. O capítulo ${CHS.length} dá o Master Contract, o único contrato com roubo garantido.</small></div><div class="ms-list">${CHS.map(row).join("")}</div></div>`);
+      const W = C.WEEKLY ? G.weekly() : null, wk = W ? `<div class="ms-lh"><h4>Semanais</h4><small>Zeram na segunda à meia-noite · faltam ${Math.max(1, Math.ceil((G.wkEnds() - Date.now()) / 864e5))} dia(s). O progresso conta sozinho.</small></div><div class="ms-list">${C.WEEKLY.map((x) => { const v = Math.min(x.n, W.c[x.id] || 0), got = W.got[x.id], ok = !got && v >= x.n;
+        return `<div class="ms-row ms-wk ${got ? "done" : ok ? "cur" : ""}"><span class="ms-n">${got ? "✓" : "★"}</span><div><b>${esc(x.text)}</b><small>${fmt(v)} / ${fmt(x.n)}</small><div class="ms-bar"><em style="width:${(v / x.n) * 100}%"></em></div></div><div class="ms-rws">${x.rw.map(rw).join("")}${ok ? `<button type="button" class="dy-claim ms-claim" data-wk-claim="${x.id}">Resgatar</button>` : ""}</div></div>`; }).join("")}</div>` : ""; // v708 (Mickey): missões semanais
+      openModal("Missões", `<div class="ms">${hero}${wk}<div class="ms-lh"><h4>Capítulos</h4><small>Em ordem. O capítulo ${CHS.length} dá o Master Contract, o único contrato com roubo garantido.</small></div><div class="ms-list">${CHS.map(row).join("")}</div></div>`);
     },
     locked(what) {
       const map = { "Reações Químicas": "Âncoras e condições de batalha, como Bachira driblando 10 vezes para dar +20% de Drible ao Isagi.", "Formações": "Pedra, papel e tesoura a partir do 4×4 (fase 4-1).", "Habilidades": "Banco de habilidades com slots por raridade: 1, 2 ou 3.", "Loja": "Onde o Gold vai ser gasto: Gatorade, upgrades e itens.", "Boss": "Lista dos Bosses de cada mapa, com arena, buffs e recompensas.", "PvP": "Partidas contra times de outros jogadores, com troca de formação no intervalo." };
@@ -2029,7 +2087,7 @@
       // v182: afinidade do jogador com a região (aumenta a chance de itens)
       const affTag = (A) => `<small class="ex-aff ${A.mult >= 1.2 ? "hi" : A.mult < 0.95 ? "lo" : ""}" title="Afinidade com ${esc(Q.r.name)}: média de ${A.keys.map((k) => C.STAT_LABEL[k]).join(" e ")}">Afinidade ${A.pct}% · itens ×${String(A.mult).replace(".", ",")}</small>`;
       const pls = pool.map((p) => { const why = G.expWhy(p, expSel.lvl), rr = rar(p.rarity);
-        return `<button type="button" class="ex-p ${expSel.uid === p.uid ? "on" : ""} ${why ? "no" : ""}" ${why || c || !lvOpen ? "disabled" : `data-exp-pl="${p.uid}"`}>${tok(p.charId, p.initials, rr.color)}<span><b>${esc(p.name)}</b><small>${rr.name} · Nv ${p.level} · Poder ${fmt(BL.power(p))}</small>${why ? `<small class="ex-why">✕ ${esc(why)}</small>` : `<small class="ex-okp">✓ Pode ir</small>`}${affTag(G.expAff(p, expSel.lvl))}</span></button>`; }).join("");
+        return `<button type="button" class="ex-p ${expSel.uid === p.uid ? "on" : ""} ${why ? "no" : ""}" ${why || c || !lvOpen ? "disabled" : `data-exp-pl="${p.uid}"`}>${tok(p.charId, p.initials, rr.color)}<span><b>${esc(p.name)}</b><small>${rr.name} · Nv ${p.level} · Poder ${fmt(BL.power(p))}</small>${why ? `<small class="ex-why">✕ ${esc(why)}</small>` : G.expFailP(p, expSel.lvl) ? `<small class="ex-why" style="color:#ffb02e">⚠ Pode ir · ${Math.round(G.expFailP(p, expSel.lvl) * 100)}% de risco de falhar</small>` : `<small class="ex-okp">✓ Pode ir</small>`}${affTag(G.expAff(p, expSel.lvl))}</span></button>`; }).join("");
       const canSend = !c && lvOpen && selP;
       openModal("Expedição", `${head}${cur}
         <div class="ex-trail-h"><small class="ex-k">Trilha de expedição</small><h3>Escolha o nível, a duração e o jogador</h3></div>
@@ -2134,15 +2192,155 @@
     ].filter(Boolean).map(([k, t]) => `<li><b>${k}</b><span>${t}</span></li>`).join("");
     openModal("Como funciona", `<div class="mdn itr"><p class="mdn-big">Bem-vindo ao <b>BL Project</b></p><p class="mdn-p">Sua primeira partida já começou. O que vale saber antes de explorar:</p><ul class="mdn-list">${rows}</ul><div class="mdn-btns"><button type="button" class="btn btn-hot" data-mdn-stay>Entendi</button></div></div>`);
   }
+  // v688 (Mickey): tutorial guiado. A cabecinha em pixel do Mickey congela a partida, aponta onde clicar e só solta quando o jogador faz.
+  // Sequências em TUT_SEQ (uma por vez, na ordem); progresso em state.tut { n: partidas começadas, done: { id: 1 } }. Conta antiga (já jogou) nasce com done.all.
+  const tutSt = () => { const s = G.state; if (!s.tut) s.tut = { n: 0, done: (s.analyzer && s.analyzer.matches > 3) || (s.career && s.career.wins > 2) ? { all: 1 } : {} }; return s.tut; };
+  const tutMine = () => $("myTeam").querySelector(".mini-card[data-ev]");
+  const tutSkName = () => { const id = Object.keys(G.skLib() || {}).find((k) => C.SKILL_DEF[k]); return id ? C.SKILL_DEF[id].name : "uma habilidade"; };
+  const tutEvBox = () => { const b = [...document.querySelectorAll("#modalBody [data-ev-add]")]; if (!b.length) return null; let a = b[0].parentNode; while (a && !a.contains(b[b.length - 1])) a = a.parentNode; return a; };
+  const tutConsN = () => { const c = G.cons(); return Object.keys(C.CONSUMABLES).reduce((n, id) => n + (c[id] || 0), 0); };
+  const tutLow = () => (G.match ? G.activePlayers().find((q) => { const e = G.healEnt(q.uid); return e && e.energy < 50; }) : null);
+  const tutVestHeal = () => (G.vest && currentModal === "Vestiário" ? document.querySelector("#modalBody [data-vest-heal]:not([disabled])") : null);
+  const tutLowCard = () => { const p = tutLow(); return p ? $("myTeam").querySelector(`.mini-card[data-ev="${p.uid}"]`) : null; };
+  const TUT_SEQ = [
+    { id: "inicio", when: (t) => t.n >= 1, steps: [
+      { t: "Fala! Eu sou o <b>Mickey</b> e vou te guiar nas primeiras partidas. Pausei o jogo rapidinho para te mostrar o básico.", ok: "Vamos lá" },
+      { at: tutMine, t: "Este é o <b>seu jogador</b>. A partida roda sozinha: ele joga e você cuida do time. Ganhando ou perdendo, ele ganha XP e sobe de nível.", ok: "Entendi" },
+      { at: () => $("enemyCard"), t: () => `Este é o <b>adversário</b>. Se você vencer, tem uma chance de <b>roubar</b> ele para o seu elenco. É a <b>Proposta</b> que tenta o roubo: cada tentativa gasta 1.`, ok: "Entendi" },
+      { skip: () => !G.mailPending(), at: () => $("btnMail"), t: "Chegou um presente para você começar: <b>200 Propostas Básicas</b> e <b>10 Águas</b>. Clique no <b>Correio</b>.", until: () => currentModal === "Correio" },
+      { skip: () => !G.mailPending(), at: () => document.querySelector("#modalBody [data-mail-claim]"), t: "Clique em <b>Resgatar</b> para pegar o seu kit.", until: () => !G.mailPending() },
+      { skip: () => currentModal !== "Correio", at: () => document.querySelector("#modalBody [data-eq-close]"), t: "Pronto, foi tudo para a Mochila. Feche o Correio e assista à sua primeira partida.", until: () => !currentModal }] }, // v689 (Mickey): o balão dos 10 níveis saiu
+    { id: "fases", when: (t) => t.n >= 2 && G.state.progress.map === 0 && G.state.progress.stage >= 2 && !G.state.training, steps: [ // v692 (Mickey): como as fases mudam
+      { at: () => $("railMap").closest(".rail-btn"), t: () => `Você venceu e já está na fase <b>${G.stageLabel()}</b>. Funciona assim: cada <b>vitória</b> passa para a próxima fase sozinha e o seu jogador sobe para o nível dela. Se perder, você fica na mesma fase e tenta de novo. Clique no <b>Mapa</b>.`, until: () => !!floats.mapa },
+      { at: () => document.querySelector(".mp-node.now"), allow: () => document.querySelector(".mp"), t: "Este é o caminho do Ato: <b>10 fases</b>, e a última é o <b>Boss</b>. A bola marca onde você está. As fases que você já venceu ficam abertas: clicando nelas dá para voltar e jogar de novo.", ok: "Entendi" },
+      { at: () => document.querySelector(".mp-node.boss"), allow: () => document.querySelector(".mp"), t: () => `Vencendo o <b>Boss</b> na fase ${C.STAGES_PER_MAP}, você libera o próximo Ato, o <b>2×2</b>, onde joga com o parceiro que roubou. Feche o Mapa quando quiser e siga em frente!`, ok: "Bora" }] },
+    { id: "misericordia", when: (t) => !!t.mercy, steps: [ // v693 (Mickey): primeira partida encerrada por 4 gols de vantagem
+      { at: () => $("scoreNow") || document.querySelector(".sb-score") || null, t: (x) => `Viu que a última partida acabou antes do tempo? Foi a <b>regra de misericórdia</b>: quando um time abre <b>${C.MERCY_DIFF} gols de vantagem</b>, o jogo termina na hora. ${tutSt().mercy === 2 ? "Dessa vez foi contra você, acontece." : "Você atropelou!"} Assim ninguém perde tempo em partida já decidida e você joga a próxima mais rápido.`, ok: "Entendi" }] },
+    { id: "expedicao", when: (t) => t.n >= 3 && tutSpare() && !G.exp().cur, steps: [ // v693 (Mickey): sobrou jogador no elenco
+      { at: () => document.querySelector('.dock [data-open="expedicao"]') || document.querySelector('[data-open="expedicao"]'), t: () => `Você tem jogador <b>sobrando</b> no elenco: neste modo só ${G.map.size === 1 ? "entra 1" : "entram " + G.map.size} em campo. Quem está parado pode trabalhar para você na <b>Expedição</b>. Clique nela.`, until: () => currentModal === "Expedição" },
+      { allow: () => $("modal"), t: "Na Expedição o jogador sai sozinho e volta com <b>XP, Gold</b> e chance de <b>itens e bebidas</b>. Enquanto isso ele fica fora das partidas, por isso mande quem não é titular.", ok: "Entendi" },
+      { allow: () => $("modal"), t: () => `Você escolhe quanto tempo ele fica fora: <b>${C.EXPEDITION.durations.map((d) => (d.min < 60 ? d.min + " min" : d.min / 60 + " h")).join(", ")}</b>. Quanto mais tempo, maior o prêmio, e o relógio corre mesmo com o <b>jogo fechado</b>. A de 8 horas é boa para deixar antes de dormir.`, ok: "Entendi" },
+      { allow: () => $("modal"), t: "Cada viagem enche a barra do nível. Barra cheia libera o próximo nível da trilha, com prêmios melhores. Jogador com o atributo certo da região rende mais. Escolha um jogador, um tempo e envie quando quiser!", ok: "Bora" }] },
+    { id: "habilidade", when: (t) => t.n >= 2 && Object.keys(G.skLib() || {}).length > 0, skip: () => G.teamSkills().length > 0, steps: [
+      { at: () => $("dockSkills").querySelector(".sk-slot"), t: () => `Seu time já tem uma habilidade guardada: <b>${esc(tutSkName())}</b>. Ela não vem equipada. Clique neste espaço vazio.`, until: () => currentModal === "Habilidades" },
+      { at: () => document.querySelector("#modalBody .hb-card:not(.locked)"), t: "Agora clique na habilidade para colocar no time.", until: () => G.teamSkills().length > 0 },
+      { at: () => $("modalClose"), t: "Boa! Na partida, quem estiver na melhor posição usa a habilidade sozinho, sempre que a recarga acabar. As outras abrem com o nível da conta e vencendo Bosses. Agora feche a janela.", until: () => !currentModal }] },
+    { id: "ev", when: (t) => t.n >= 3 && G.evPool() > 0 && !!tutMine(), steps: [
+      { at: tutMine, t: () => `Toda partida dá <b>pontos de EV</b>: ${C.EV_WIN} na vitória e ${C.EV_LOSS} na derrota. Com eles você aumenta o atributo que quiser. Você já tem ${G.evPool()}. Clique no seu jogador.`, until: () => !!tutEvBox() },
+      { at: tutEvBox, enter: (x) => { x.ev = G.evPool(); }, t: "<b>IV</b> nasce com o jogador e não muda. <b>EV</b> é você quem distribui. Escolha um atributo e clique em +1 ou +10.", until: (x) => G.evPool() < x.ev },
+      { at: () => $("modalClose"), allow: () => $("modal"), t: "Boa! Dá para gastar o resto agora ou guardar, e resetar depois por Gold. Feche a janela quando terminar.", until: () => !currentModal }] },
+    { id: "energia", when: () => !!tutLowCard(), steps: [
+      { at: tutLowCard, t: () => `Seu jogador está <b>cansado</b>, e cansado ele joga pior. Água e Gatorade recuperam a energia, mas só podem ser usadas no <b>intervalo</b>, no Vestiário. Você tem ${tutConsN()} na Mochila; tem mais na <b>Loja</b>.`, ok: "Entendi" }] },
+    { id: "vestiario", vest: true, when: () => !!tutVestHeal(), steps: [
+      { at: tutVestHeal, allow: () => $("modal"), enter: (x) => { x.n = tutConsN(); }, t: "Este é o <b>Vestiário</b>, o intervalo da partida. É aqui que você usa a bebida: clique nela para recuperar a energia do jogador. Também dá para trocar com os reservas.", until: (x) => tutConsN() < x.n }] },
+    { id: "bau", when: (t) => t.n >= 2 && (G.state.chests || []).length > 0, steps: [
+      { at: () => $("railChests").closest(".rail-btn"), t: "Caiu um <b>baú</b>! Baús aparecem em gols e vitórias, e tudo vai para os Espólios. Clique para ver.", until: () => !!floats.chests || currentModal === "Espólios" },
+      { t: "É só clicar no baú para abrir. Eles guardam Gold e itens para o seu time.", ok: "Entendi" }] },
+    { id: "missoes", when: (t) => t.n >= 4, steps: [
+      { at: () => $("railMis").closest(".rail-btn"), t: "Aqui ficam as <b>Missões</b>: objetivos em ordem, cada um com prêmio. Clique para ver a sua missão atual.", until: () => currentModal === "Missões" },
+      { at: () => $("modalClose"), allow: () => $("modal"), t: "Cumpra a missão e pegue o prêmio aqui. Daqui para frente é com você. Feche a janela e bom jogo!", until: () => !currentModal }] },
+    { id: "tecnico", when: (t) => t.n >= 5, steps: [ // v691 (Mickey): técnicos e itens de treinador
+      { at: () => $("dockLead").querySelector(".coach-card") || $("dockLead"), t: "Este é o seu <b>técnico</b>. Cada técnico tem uma passiva que vale a partida inteira, como deixar os adversários mais lentos ou render mais Gold. O nível dele é o da sua conta: quanto maior, melhor ele lê a formação do adversário. Clique nele.", until: () => currentModal === "Técnicos" },
+      { at: () => document.querySelector("#modalBody [data-eq-close]"), allow: () => $("modal"), t: "Aqui ficam todos os técnicos e a passiva de cada um. Você começa com o Kyouya Kurogane e pode contratar os outros. Só um trabalha por vez. Olhe à vontade e feche a janela.", until: () => !currentModal },
+      { at: () => $("railBag").closest(".rail-btn"), t: "O técnico também usa <b>itens de treinador</b>: são 3 espaços que dão mais XP, Gold, baús e outros bônus. Atenção: cada item vale por <b>1 partida</b>. Jogou, gastou, e para usar de novo precisa ter outro. Eles vêm da Loja e dos baús, e você equipa pela <b>Mochila</b>.", ok: "Entendi" }] },
+    { id: "fichas", when: (t) => t.n >= 2 && tutFichas() > 0, steps: [ // v695 (Mickey): primeira ficha de cor da Expedição
+      { at: () => $("railBag").closest(".rail-btn"), t: () => `A Expedição trouxe <b>fichas</b>! Cada cor de ficha é uma <b>raridade</b> de item. Juntando o bastante da mesma cor, você <b>forja</b> um equipamento dessa raridade. Clique na <b>Mochila</b>.`, until: () => currentModal === "Mochila" },
+      { at: () => document.querySelector('#modalBody [data-bag-cat="forja"]'), allow: () => $("modal"), t: "As fichas ficam na aba <b>Forja</b>. Clique nela.", until: () => bagUi.cat === "forja" },
+      { allow: () => $("modal"), t: () => `Cada barra é uma cor: ${Object.values(C.FICHAS).map((F) => `<b style="color:${rar(F.rarity).color}">${rar(F.rarity).name}</b> pede ${F.n}`).join(", ")}. Encheu a barra, o botão vira <b>Forjar</b> e você ganha 1 chuteira, caneleira ou camisa aleatória daquela raridade.`, ok: "Entendi" },
+      { allow: () => $("modal"), t: "Para juntar mais rápido: expedições <b>mais longas</b> trazem mais fichas, e as regiões mais avançadas trazem fichas de cores melhores. Depois é só equipar o item no seu jogador aqui mesmo na Mochila.", ok: "Bora" }] },
+    { id: "soneca", when: (t) => t.n >= 5 && !G.state.training && (G.state.progress.map > 0 || G.state.progress.stage >= 7), steps: [ // v693 (Mickey): depois de passar 6 fases do 1×1
+      { at: () => document.querySelector('.tb-ico[data-open="sleep"]'), t: "Vai sair do jogo? Antes, conheça o <b>Modo Soneca</b>: com ele o seu time continua ganhando XP com o jogo <b>fechado</b>. Clique na lua.", until: () => currentModal === "Modo Soneca" },
+      { allow: () => $("modal"), t: () => `Funciona assim: você entra em soneca, o jogo mede o seu ritmo por ${Math.round(C.SLEEP_MEASURE_SEC / 60)} minutos e te leva para a tela inicial. Quando voltar, cada jogador do time recebe o <b>XP</b> das horas que passaram, pela fase em que você parou. Não tem limite de horas.`, ok: "Entendi" },
+      { allow: () => $("modal"), t: () => `Dois detalhes: a soneca dá <b>só XP</b> (Gold, baús e roubos só jogando) e rende ${Math.round(C.SLEEP_XP_MULT * 100)}% do XP de uma partida normal. Por isso vale parar na fase mais alta que você vence. Use sempre que for fechar o jogo!`, ok: "Bora" }] },
+  ];
+  const tutFichas = () => { const c = G.cons(); return Object.keys(C.FICHAS || {}).reduce((n, id) => n + (c[id] || 0), 0); }; // v695
+  const tutSpare = () => G.state.roster.filter((p) => !G.isAway(p.uid)).length > G.map.size; // v693
+  const TUT = { cur: null };
+  function tutEl() {
+    let w = $("tut"); if (w) return w;
+    w = document.createElement("div"); w.id = "tut"; w.hidden = true;
+    w.innerHTML = `<div class="tut-ring"></div><div class="tut-bub"><div class="tut-face"><i></i><u></u></div><div class="tut-tx"><b class="tut-nm">Mickey</b><p></p><div class="tut-ft"><button type="button" class="btn btn-hot tut-ok"></button><button type="button" class="tut-skip">Pular tutorial</button></div></div></div>`;
+    document.body.appendChild(w);
+    w.querySelector(".tut-ok").addEventListener("click", () => { if (TUT.cur) tutNext(); });
+    w.querySelector(".tut-skip").addEventListener("click", () => { if (!TUT.cur) return; tutSt().done.all = 1; tutEnd(false); toast("Tutorial desligado"); });
+    return w;
+  }
+  function tutStep() { const c = TUT.cur; return c.q.steps[c.i]; }
+  function tutEnter() { const c = TUT.cur, st = tutStep(); c.x = c.x || {}; c.miss = 0; c.key = null; if (st.enter) st.enter(c.x); }
+  function tutNext() { const c = TUT.cur; do { if (++c.i >= c.q.steps.length) return tutEnd(true); } while (tutStep().skip && tutStep().skip()); tutEnter(); tutDraw(); } // v690: passo com skip() verdadeiro é pulado
+  function tutEnd(done) { const c = TUT.cur; TUT.cur = null; if (!c) return; if (done) tutSt().done[c.q.id] = 1; TUT.wait = Date.now() + 8000; G.save(); tutEl().hidden = true; if (G.match === c.m && c.m.paused && !G.vest && !G.prematch && currentModal !== "Pausa tática") c.m.paused = false; }
+  function tutDraw() {
+    const c = TUT.cur, st = tutStep(), w = tutEl();
+    if (!G.match || G.match !== c.m || !$("landing").hidden) return tutEnd(false);
+    c.m.paused = true;
+    if (st.until && st.until(c.x)) return tutNext();
+    const el = st.at ? st.at(c.x) : null;
+    if (st.at && !el) { if (++c.miss > 12) { if (c.i) { c.i = 0; tutEnter(); } else return tutEnd(false); } return; } // alvo sumiu (janela fechada): volta ao 1º passo
+    c.miss = 0; c.el = el; w.hidden = false;
+    const key = c.q.id + c.i;
+    if (c.key !== key) { c.key = key; w.querySelector("p").innerHTML = typeof st.t === "function" ? st.t(c.x) : st.t; const ok = w.querySelector(".tut-ok"); ok.hidden = !st.ok; ok.textContent = st.ok || ""; const fc = w.querySelector(".tut-face"); fc.classList.remove("pop"); void w.offsetWidth; fc.classList.add("pop", "talk"); clearTimeout(TUT.talkT); TUT.talkT = setTimeout(() => fc.classList.remove("talk"), 2600); } // v689: fala (boca mexe) por 2,6 s a cada balão, depois só pisca e balança
+    const ring = w.querySelector(".tut-ring"), bub = w.querySelector(".tut-bub"), W = innerWidth, H = innerHeight, bw = bub.offsetWidth, bh = bub.offsetHeight;
+    if (!el) { ring.style.cssText = `left:${W / 2}px;top:${H / 2}px;width:0;height:0;border:0`; bub.className = "tut-bub"; bub.style.left = `${(W - bw) / 2}px`; bub.style.top = `${(H - bh) / 2}px`; return; }
+    const r = el.getBoundingClientRect(), pad = 6;
+    ring.style.cssText = `left:${r.left - pad}px;top:${r.top - pad}px;width:${r.width + pad * 2}px;height:${r.height + pad * 2}px`;
+    const below = r.bottom + bh + 26 < H, above = r.top - bh - 26 > 0, cx = r.left + r.width / 2;
+    let x, y, cls = "tut-bub";
+    if (below || above) { x = Math.max(10, Math.min(W - bw - 10, cx - bw / 2)); y = below ? r.bottom + 20 : r.top - bh - 20; cls += below ? " up" : " down"; bub.style.setProperty("--ax", `${Math.max(24, Math.min(bw - 24, cx - x))}px`); }
+    else { const right = r.right + bw + 26 < W; x = right ? r.right + 20 : Math.max(10, r.left - bw - 20); y = Math.max(10, Math.min(H - bh - 10, r.top + r.height / 2 - bh / 2)); cls += right ? " lft" : " rgt"; }
+    bub.className = cls; bub.style.left = `${x}px`; bub.style.top = `${y}px`;
+  }
+  function tutTick() {
+    const s = G.state; if (!s || !$("landing").hidden) return;
+    if (TUT.cur) return tutDraw();
+    const m = G.match, t = tutSt();
+    if (G.dev || t.done.all || !m || m.training || G.pvpFight || rouletteLock) return;
+    const inVest = !!(G.vest && currentModal === "Vestiário"); // v690: sequência com vest: true roda dentro do Vestiário (partida já pausada)
+    if (!inVest && (m.paused || m.state === "ended" || currentModal || G.vest || G.prematch || (m.clock || 0) < 1.2 || Date.now() < (TUT.wait || 0))) return; // 8 s de respiro entre uma sequência e outra
+    const q = TUT_SEQ.find((x) => !t.done[x.id] && !!x.vest === inVest && x.when(t)); if (!q) return;
+    if (q.skip && q.skip()) { t.done[q.id] = 1; G.save(); return; }
+    TUT.cur = { q, i: 0, m, x: {} }; m.paused = true; tutEnter(); tutDraw();
+  }
+  setInterval(tutTick, 150);
+  // v693 (Mickey): janela "Novo Ato": escolher quem sobe de nível para jogar o 2×2 (ou o 3×3). Reaparece depois de 90 s se for fechada sem escolher
+  let apWait = 0, apSel = null, skBuyArm = null;
+  // v694 (Mickey): aviso de habilidade nova. Fica na tela até clicar (abre Habilidades) ou fechar
+  let skKnown = null;
+  function skNewCheck() {
+    if (!G.state || !$("landing").hidden || G.dev) { skKnown = null; return; }
+    const ids = Object.keys(G.skLib() || {}), acc = G.account || "";
+    if (!skKnown || skKnown.acc !== acc) { skKnown = { acc, set: new Set(ids) }; return; }
+    const nw = ids.filter((id) => !skKnown.set.has(id) && C.SKILL_DEF[id]); if (!nw.length) return; nw.forEach((id) => skKnown.set.add(id));
+    let el = $("skNew"); if (el) el.remove(); el = document.createElement("div"); el.id = "skNew"; el.className = "sk-new"; const d = C.SKILL_DEF[nw[0]]; el.style.setProperty("--rc", C.SKILL_RAR_COL[d.rar] || "#26D9FF");
+    el.innerHTML = `<button type="button" class="sk-new-go">${skIco(nw[0], 56)}<span><small>Habilidade nova!</small><b>${esc(d.name)}${nw.length > 1 ? ` +${nw.length - 1}` : ""}</b><em>Clique para ver e equipar</em></span></button><button type="button" class="sk-new-x" aria-label="Fechar">✕</button>`;
+    el.querySelector(".sk-new-go").addEventListener("click", () => { el.remove(); MODALS.habilidades(); });
+    el.querySelector(".sk-new-x").addEventListener("click", () => el.remove());
+    document.body.appendChild(el); fanfare();
+  }
+  setInterval(skNewCheck, 1000);
+  function actPickOpen() {
+    const n = G.actNeed(); if (!n) return; const mp = C.MAPS[n.map]; apSel = n.list.some((p) => p.uid === apSel) ? apSel : null;
+    openModal("Novo Ato", `<div class="st-pick ap-pick"><p class="st-lead">Você liberou o <b>${mp.mode}</b>! Agora ${mp.size === 2 ? "entram 2 jogadores" : "entram " + mp.size + " jogadores"} em campo. <b>Escolha quem vai jogar com você</b>: o escolhido sobe direto para o <b>Nv ${n.lv}</b>.${n.left > 1 ? ` Faltam ${n.left} escolhas.` : ""}</p>
+      <div class="st-row ap-row">${n.list.map((p) => `<button type="button" class="st-card${p.uid === apSel ? " on" : ""}" data-ap="${p.uid}"><span class="st-face">${spr(p.charId) || `<span class="rl-badge">${esc(p.initials)}</span>`}<b>${esc(p.name)}</b><small>${esc(posName(p.position))} · <i style="color:${rar(p.rarity).color};font-style:normal">${rar(p.rarity).name}</i></small><small class="ap-lv">Nv ${p.level} <u>➜</u> <b>Nv ${n.lv}</b></small></span></button>`).join("")}</div>
+      <div class="reveal-actions"><button type="button" class="btn btn-hot" data-ap-ok ${apSel ? "" : "disabled"}>${apSel ? `Subir ${esc(n.list.find((p) => p.uid === apSel).short)} para o Nv ${n.lv}` : "Escolha um jogador"}</button></div></div>`);
+    idleAnimate($("modalBody"));
+  }
+  setInterval(() => { if (!G.state || !$("landing").hidden || currentModal || TUT.cur || rouletteLock || G.vest || G.prematch || G.pvpFight || Date.now() < apWait || !G.actNeed()) return; apWait = Date.now() + 90000; actPickOpen(); }, 1000);
+  // enquanto o Mickey fala, só o alvo (ou a área liberada do passo) e o balão recebem clique
+  ["click", "pointerdown", "mousedown", "touchstart"].forEach((ev) => document.addEventListener(ev, (e) => {
+    const c = TUT.cur; if (!c || $("tut").hidden) return; const st = tutStep(), a = st.allow ? st.allow() : null, el = st.at ? st.at(c.x) : null; // alvo lido na hora: janelas se redesenham
+    if (e.target.closest(".tut-bub") || (el && el.contains(e.target)) || (a && a.contains(e.target))) return;
+    e.stopPropagation(); e.preventDefault();
+  }, true));
+  document.addEventListener("keydown", (e) => { if (TUT.cur && e.key === "Escape") { e.stopPropagation(); e.preventDefault(); } }, true);
   function modeNotice() {
-    const i = G.state ? G.modeNew() : -1; if (i < 0 || currentModal || rouletteLock || !$("landing").hidden || G.vest) return;
+    const i = G.state ? G.modeNew() : -1; if (i < 0 || TUT.cur || currentModal || rouletteLock || !$("landing").hidden || G.vest) return;
     const m = C.MAPS[i], cur = G.map, n = G.state.roster.length;
-    const rows = [1, 2, 3].map((k) => { const mm = C.MAPS[k], ok = G.mapUnlocked(k); return `<li class="${ok ? "ok" : ""}${k === i ? " new" : ""}"><b>${mm.mode}</b><span>${mm.size} jogadores no elenco</span><em>${ok ? "Liberado" : `Faltam ${G.modeNeed(k)}`}</em></li>`; }).join("");
+    const rows = [1, 2, 3].map((k) => { const mm = C.MAPS[k], ok = G.mapUnlocked(k); return `<li class="${ok ? "ok" : ""}${k === i ? " new" : ""}"><b>${mm.mode}</b><span>${mm.size} jogadores no elenco</span><em>${ok ? "Liberado" : G.modeNeed(k) ? `Faltam ${G.modeNeed(k)}` : "Vença o Boss"}</em></li>`; }).join("");
     G.modeAck(i);
     openModal("Novo modo liberado", `<div class="mdn"><p class="mdn-big"><b>${m.mode}</b> liberado!</p>
-      <p class="mdn-p">Você já tem ${n} jogadores no elenco, então pode sair do ${cur.mode} e jogar o <b>${esc(m.name)}</b>. Lá os adversários vão do Nv ${m.levelMin} ao ${m.levelMax} e o XP é bem maior, então o seu time sobe rápido.</p>
+      <p class="mdn-p">Você venceu o Boss e já tem ${n} jogadores no elenco, então pode sair do ${cur.mode} e jogar o <b>${esc(m.name)}</b>. Lá os adversários vão do Nv ${m.levelMin} ao ${m.levelMax} e o XP é bem maior, então o seu time sobe rápido.</p>
       <ul class="mdn-list">${rows}</ul>
-      <p class="mdn-p">Cada modo abre sozinho quando o elenco tem jogadores suficientes. Para ter mais jogadores, vença partidas com uma Proposta equipada e roube o adversário. Você troca de modo quando quiser no botão <b>Mapa</b>, à direita.</p>
+      <p class="mdn-p">Cada modo abre quando você vence o Boss do Ato anterior e o elenco tem jogadores suficientes. Para ter mais jogadores, vença partidas com uma Proposta equipada e roube o adversário. Você troca de Ato quando quiser no botão <b>Mapa</b>, à direita, e nos Atos já vencidos pode escolher qualquer fase.</p>
       <div class="mdn-btns"><button type="button" class="btn btn-hot" data-map="${i}">Jogar ${m.mode} agora</button><button type="button" class="btn" data-mdn-stay>Continuar no ${cur.mode}</button></div></div>`);
   }
   setInterval(modeNotice, 2500);
@@ -2462,6 +2660,9 @@
     } },
   ];
   document.addEventListener("pointerdown", () => { sfx(); bgmReady = true; music(); }, { once: true });
+  // v693: áudios enviados pelo Mickey (snd/contrato-roubou.mp3, contrato-rasgado.mp3, bau-abre.mp3), no canal "Roleta e menus"
+  const fxSnds = {};
+  function fxSnd(name) { if (!soundOn()) return; try { const a = fxSnds[name] || (fxSnds[name] = new Audio("snd/" + name + ".mp3?v=" + BL.BUILD)); a.volume = Math.min(1, vol("ui") * 0.7); a.currentTime = 0; const p = a.play(); if (p) p.catch(() => {}); } catch (e) {} }
   function tick(speed) {
     const ac = audio; if (!ac || !soundOn()) return;
     const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
@@ -2662,7 +2863,7 @@
     renderHomeName(); renderPrematch();
     $("sbAway").textContent = G.enemy ? G.enemyTeam + (G.enemy.boss ? " · BOSS" : "") : "TREINO";
     $("sbAway").parentElement.classList.toggle("boss", !!G.enemy?.boss);
-    $("stealPop").hidden = true;
+    $("stealPop").hidden = true; { const x = $("stealCtx"); if (x) x.remove(); }
     renderAll();
     refreshFloats(true);
   });
@@ -3024,7 +3225,7 @@
     if (d.hubCraft) return hubCraft(d.hubCraft);
   }
   // v158 · Expedição: contagem ao vivo no pop-up, aviso quando volta e resgate automático do VIP
-  function expToast(r) { return `${r.name} voltou da expedição: ${fmt(r.gold)} gold, +${fmt(r.xp)} XP${r.item && BL.anyItem(r.item) ? `, ${BL.anyItem(r.item).name}` : ""}${r.cons ? `, ${C.CONSUMABLES[r.cons].name}` : ""}`; }
+  function expToast(r) { return `${r.name} ${r.fail ? "falhou na expedição, trouxe só" : "voltou da expedição:"} ${fmt(r.gold)} gold, +${fmt(r.xp)} XP${r.item && BL.anyItem(r.item) ? `, ${BL.anyItem(r.item).name}` : ""}${r.cons ? `, ${C.CONSUMABLES[r.cons].name}` : ""}`; }
   let expWasDone = false;
   // v186 · Recompensa diária: contagem até a meia-noite e bolinha no botão da dock quando há prêmio
   function dyLeft() { const s = Math.max(0, Math.floor((G.dailyNextReset() - Date.now()) / 1000)); return `${String(Math.floor(s / 3600)).padStart(2, "0")}h ${String(Math.floor(s / 60) % 60).padStart(2, "0")}m ${String(s % 60).padStart(2, "0")}s`; }
@@ -3053,7 +3254,7 @@
   G.on("skills", () => renderSkills());
   G.on("roster", () => { renderMyTeam(); renderDock(); refreshFloats(); renderWildcard(); });
   G.on("dev", () => { G.wcTick(); renderWildcard(); hubRender(); renderRail(); renderMyTeam(); renderObjective(); if (!G.dev) closeFloat("dev"); else refreshFloats(true); });
-  G.on("toast", (t) => toast(t)); G.on("matchStart", () => { const s = G.state; if (s && s.analyzer && !s.analyzer.matches && !s.firstTip && !G.dev && !(G.match && G.match.training)) setTimeout(introNotice, 1500); }); /* v680 */ G.on("log", renderLog);
+  G.on("toast", (t) => toast(t)); G.on("matchStart", () => { const s = G.state; if (s && !G.dev && !G.pvpFight && !(G.match && G.match.training)) tutSt().n++; }); /* v688: o tutorial do Mickey (TUT_SEQ) substitui o pop-up "Como funciona" (introNotice, v682) */ G.on("log", renderLog);
   function renderHomeName() { $("sbHome").innerHTML = `<span class="sb-tag">${esc(G.teamTag())}</span>`; $("sbHome").title = G.teamName(); }
   G.on("teamName", renderHomeName);
   G.on("score", () => { renderScore(); renderEnemy(); renderRail(); refreshFloats(); });
@@ -3063,6 +3264,7 @@
   G.on("chest", (ch) => { renderChests(); toast(`${C.CHEST_KINDS[ch.kind].name} no Espólios`); });
   setInterval(() => G.stdChestTick(), 10000);
   G.on("matchEnd", (r) => {
+    if (r.reason === "mercy" && !tutSt().done.misericordia) { tutSt().mercy = r.win ? 1 : 2; } // v693: o Mickey explica na partida seguinte
     renderAll();
     r.ups.forEach((u) => toast(u));
     if (r.prologue && r.stolen) prologueRoulette(r); // v558: Prólogo
@@ -3082,10 +3284,32 @@
       cards[i % n].classList.add("rl-on");
       i++;
       if (i < hops) return setTimeout(step, times[i] - times[i - 1]);
-      const c = cards[r.target]; c.classList.remove("rl-on"); c.classList.add("rl-pick", r.stolen ? "rl-ok" : "rl-fail");
-      setTimeout(() => stealReveal(r), 500);
+      const c = cards[r.target]; c.classList.remove("rl-on"); c.classList.add("rl-pick"); if (!r.arm) c.classList.add(r.stolen ? "rl-ok" : "rl-fail");
+      setTimeout(() => (r.arm ? stealSuspense(r, c) : stealReveal(r)), 450);
     };
     setTimeout(step, times[0]);
+  }
+  // v690 (Mickey): suspense do roubo. v692: segue o storyboard dele: 1 surge e pulsa (papel creme com moldura dourada, brilho verde e anel no chão), 2 mira no alvo (mira fechando e riscos de velocidade), 3 ROUBADO! (carimbo verde) ou 4 contrato rasgado (vermelho). O nome no papel é o do contrato usado (r.arm)
+  function stealSuspense(r, card) {
+    const q = C.SUPPLIES[r.arm] || { name: "Proposta" }, en = (G.enemies || [])[r.target], host = $("pitchWrap"), old = $("stealCtx"); if (old) old.remove();
+    const lau = (c) => `<svg class="ctx-lau ${c}" viewBox="0 0 12 16" aria-hidden="true"><path d="M10 15C5 13 2 9 3 2" fill="none" stroke="#b8893a" stroke-width="1"/><g fill="#c9a04a"><ellipse cx="3.2" cy="3.2" rx="1.3" ry="2.4" transform="rotate(-14 3.2 3.2)"/><ellipse cx="2.2" cy="7" rx="1.3" ry="2.4" transform="rotate(-42 2.2 7)"/><ellipse cx="3.6" cy="10.4" rx="1.3" ry="2.4" transform="rotate(-62 3.6 10.4)"/><ellipse cx="6.4" cy="13" rx="1.3" ry="2.4" transform="rotate(-80 6.4 13)"/><ellipse cx="5.6" cy="5.6" rx="1.1" ry="2.1" transform="rotate(28 5.6 5.6)"/><ellipse cx="6.4" cy="9.4" rx="1.1" ry="2.1" transform="rotate(8 6.4 9.4)"/></g></svg>`;
+    const paper = `<div class="ctx-in"><small>${lau("a")}<span>BL PROJECT</span>${lau("b")}</small><b>${esc(q.name)}</b><span class="ctx-div"><i></i></span><em>${esc(en ? en.short || en.name : "Adversário")}</em><u></u>${lau("c")}<span class="ctx-seal"><span>BL</span></span></div>`;
+    const el = document.createElement("div"); el.id = "stealCtx"; el.className = "ctx"; el.style.setProperty("--ctx-t", C.STEAL_SUSPENSE_MS + "ms");
+    el.innerHTML = `<div class="ctx-speed"></div><div class="ctx-glow"></div><div class="ctx-floor"></div><div class="ctx-beam"></div>${Array.from({ length: 12 }, (_, i) => `<i class="ctx-p" style="--a:${i * 30 + Math.round(Math.random() * 16)}deg;--d:${120 + Math.round(Math.random() * 90)}px"></i>`).join("")}
+      <div class="ctx-paper"><div class="ctx-half l">${paper}</div><div class="ctx-half r">${paper}</div><svg class="ctx-crack" viewBox="0 0 40 240" preserveAspectRatio="none" aria-hidden="true"><polyline points="24,0 15,34 26,62 13,98 25,130 14,164 24,198 16,240"/></svg><span class="ctx-stamp">ROUBADO!</span></div>
+      <div class="ctx-aim"><i class="c"></i><i class="b tl"></i><i class="b tr"></i><i class="b bl"></i><i class="b br"></i><i class="ar t"></i><i class="ar r"></i><i class="ar d"></i><i class="ar l"></i></div>
+      <b class="ctx-res">Contrato rasgado</b><small class="ctx-ch">Chance de roubo ${String(r.chance).replace(".", ",")}%${C.STEAL_PITY && r.chance < 100 ? ` · Sorte ${Math.min(r.pity0 || 0, C.STEAL_PITY.sure)}/${C.STEAL_PITY.sure}` : ""}</small>`; // v708: sorte do contrato
+    host.appendChild(el);
+    const T = C.STEAL_SUSPENSE_MS, t0 = Date.now(), tk = setInterval(() => { const u = (Date.now() - t0) / T; if (u >= 1 || !el.isConnected) return clearInterval(tk); tick(1 - u * 0.8); }, 150);
+    setTimeout(() => { if (el.isConnected) el.classList.add("aim"); }, T * 0.45);
+    setTimeout(() => { if (el.isConnected) fxSnd(r.stolen ? "contrato-roubou" : "contrato-rasgado"); }, Math.max(0, T - 800)); // v693: áudios do Mickey, o pico (0,8 s) cai no resultado
+    setTimeout(() => {
+      if (!el.isConnected) return;
+      el.classList.remove("aim"); el.classList.add(r.stolen ? "ok" : "fail");
+      { const SP = C.STEAL_PITY, miss = (r.roll || 0) - (r.chance || 0), rs = el.querySelector(".ctx-res"); if (!r.stolen && SP && rs && miss >= 0 && miss < SP.near) rs.textContent = `Quase! Faltou ${String(Math.max(0.1, Math.round(miss * 10) / 10)).replace(".", ",")}%`; } // v708 (Mickey): quase vitória
+      if (card) card.classList.add(r.stolen ? "rl-ok" : "rl-fail");
+      setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 300); stealReveal(r); }, r.stolen ? 1300 : 1500);
+    }, T);
   }
   // v558 (Mickey): venceu o Mini Boss do Prólogo → jackpot de silhuetas de personagens; para no Comum roubado (garantido)
   function prologueRoulette(r) {
@@ -3128,13 +3352,17 @@
     if ("hubGo" in t.dataset) { closeModal(); if ("hubTrain" in t.dataset) return $("trainBtn").click(); if (t.dataset.float) { if (!floats[t.dataset.float]) openFloat(t.dataset.float); return; } } // v283: Central do treinador fecha e segue para o recurso
     if (t.dataset.hubCat) { const el = $("hub-" + t.dataset.hubCat); if (el) el.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }); document.querySelectorAll(".hub-nav").forEach((x) => x.classList.toggle("on", x === t)); return; }
     if (t.dataset.pcTab) { pcUi.tab = t.dataset.pcTab; return MODALS.players(); } // v583
-    if (t.dataset.mstPick) { pcUi.sel = t.dataset.mstPick; return MODALS.players(); }
+    if (t.dataset.mstPick) { pcUi.sel = t.dataset.mstPick; return pcKeepScroll(); }
+    if (t.dataset.dexPick) { pcUi.dex = t.dataset.dexPick; return pcKeepScroll(); } // v708; v709 (Mickey): clicar não volta a lista para cima
     if (t.dataset.pcPick) { pcUi.sel = t.dataset.pcPick; return MODALS.players(); } // v281
     if (t.dataset.espCat) { espUi.cat = t.dataset.espCat; espUi.sel = null; return MODALS.espolios(); } // v382
     if (t.dataset.espPick) { espUi.sel = t.dataset.espPick; return MODALS.espolios(); }
-    if (t.dataset.espOpen) { const c = G.state.chests.find((x) => (x.kind || "azul") === t.dataset.espOpen); if (c) { lootNotes([G.openChest(c.id)]); renderChests(); } return MODALS.espolios(); }
+    if (t.dataset.espOpen) { const c = G.state.chests.find((x) => (x.kind || "azul") === t.dataset.espOpen); if (c) { const o = G.openChest(c.id); chestBoom([o]); lootNotes([o]); renderChests(); } return MODALS.espolios(); }
     if (t.dataset.bagCat) { bagUi.cat = t.dataset.bagCat; bagUi.sel = null; return MODALS.mochila(); } // v381
     if (t.dataset.bagPick) { bagUi.sel = t.dataset.bagPick; document.querySelectorAll(".bg-card.on").forEach((c) => c.classList.remove("on")); t.classList.add("on"); const l = $("bagLeft"); if (l) l.innerHTML = bagLeftHtml(bagEntries().find((e) => e.key === bagUi.sel)); return; }
+    if (t.dataset.bagWhob) { bagUi.who = t.dataset.bagWhob; return MODALS.mochila(); } // v694
+    if (t.dataset.bagUnq) { const [u, k] = t.dataset.bagUnq.split("|"), p = G.player(u), id = p && p.items[k]; if (id) { G.unequip(u, k); toast(`${BL.ITEM_BY_ID[id].name} voltou para a Mochila`); } return MODALS.mochila(); }
+    if (t.dataset.eqUnq1) { const [u, k] = t.dataset.eqUnq1.split("|"), p = G.player(u), id = p && p.items[k]; if (id) { G.unequip(u, k); toast(`${BL.ITEM_BY_ID[id].name} voltou para a Mochila`); } return MODALS.equipe(); }
     if (t.dataset.bagEquip) { const i = G.state.inventory.indexOf(t.dataset.bagEquip), p = G.player(bagUi.who); if (i < 0 || !p) return; const it0 = BL.ITEM_BY_ID[t.dataset.bagEquip]; if (it0 && it0.ci && !BL.charItemOk(p, it0)) { toast("Esse item é só do próprio personagem, Épico ou acima"); return; } G.equip(i, p.uid); toast(`${BL.ITEM_BY_ID[t.dataset.bagEquip].name} equipado em ${p.short || p.name}`); return MODALS.mochila(); }
     if ("pcClear" in t.dataset) { Object.assign(pcUi, { q: "", rar: "", pos: "", st: "", ord: "nivel", dir: "desc" }); return MODALS.players(); }
     if (t.dataset.eqPick) { eqUid = t.dataset.eqPick; return MODALS.equipe(); } // v276
@@ -3146,7 +3374,8 @@
     if (t.dataset.eqTeam) { if (G.useTeamSet(+t.dataset.eqTeam)) { eqUid = null; toast(G.state.training ? `Time ${+t.dataset.eqTeam + 1} em campo` : `Time ${+t.dataset.eqTeam + 1} escolhido: vale na próxima partida`, "gold"); } return MODALS.equipe(); }
     if (t.dataset.eqOut) { G.removeFromLineup(t.dataset.eqOut); eqUid = null; return MODALS.equipe(); }
     if (t.dataset.eqEv) return MODALS.ev(t.dataset.eqEv);
-    if (t.dataset.eqUnequip) { const p = G.player(t.dataset.eqUnequip); const ks = p ? Object.keys(p.items || {}).filter((k) => p.items[k]) : []; ks.forEach((k) => G.unequip(p.uid, k)); if (ks.length) toast(`${ks.length} ${ks.length > 1 ? "itens voltaram" : "item voltou"} para o inventário`); return MODALS.equipe(); } // v279
+    if (t.dataset.eqUnqOpen) { eqUnq = eqUnq === t.dataset.eqUnqOpen ? null : t.dataset.eqUnqOpen; return MODALS.equipe(); } // v694: lista de itens para retirar
+    if (t.dataset.eqUnequip) { eqUnq = null; const p = G.player(t.dataset.eqUnequip); const ks = p ? Object.keys(p.items || {}).filter((k) => p.items[k]) : []; ks.forEach((k) => G.unequip(p.uid, k)); if (ks.length) toast(`${ks.length} ${ks.length > 1 ? "itens voltaram" : "item voltou"} para o inventário`); return MODALS.equipe(); } // v279
     if ("eqClose" in t.dataset) return closeModal();
     if (t.dataset.tpSlot) { trUi.slot = t.dataset.tpSlot; return MODALS.trainPick(); }
     if (t.dataset.tpPos) { trUi.pos = t.dataset.tpPos; return MODALS.trainPick(); }
@@ -3236,7 +3465,9 @@
     if (t.dataset.bossRkOpen) { bossRk.open = bossRk.open === t.dataset.bossRkOpen ? null : t.dataset.bossRkOpen; return MODALS.boss(true); }
     if (t.dataset.bossRkClose) { bossRk = null; return MODALS.boss(true); }
     if (t.dataset.misClaim) { const r = G.misClaim(); toast(r.ok ? (r.last ? `Capítulo concluído: ${r.ch.title}! Prêmios entregues.` : `Missão concluída: ${r.q.goal}. Prêmio entregue!`) : r.msg, r.ok ? "gold" : undefined); misBadge(); renderChests(); return MODALS.missoes(); } // v534
-    if (t.dataset.dailyClaim) { const r = G.dailyClaim(); if (r) { const R = C.DAILY_REWARDS[r.day - 1]; toast(`Dia ${r.day} resgatado: ${R.k === "boneco" ? `${r.name} (${rar(R.rarity).name})` : `${fmt(R.n)} ${R.k === "gold" ? "Gold" : R.k === "diamantes" ? "Diamantes" : R.k === "xp" ? "XP" : C.CONSUMABLES[R.k].name}`}`, "gold"); } return MODALS.diaria(); }
+    if (t.dataset.dailyClaim) { const r = G.dailyClaim(); if (r) { const R = C.DAILY_REWARDS[r.day - 1]; toast(`Dia ${r.day} resgatado: ${R.k === "boneco" ? `${r.name} (${rar(R.rarity).name})` : `${fmt(R.n)} ${R.k === "gold" ? "Gold" : R.k === "diamantes" ? "Diamantes" : R.k === "xp" ? "XP" : R.k === "chest" ? C.CHEST_KINDS[R.id].name : R.k === "sup" ? C.SUPPLIES[R.id].name : C.CONSUMABLES[R.k].name}`}${r.bonus ? ` + ${fmt(r.bonus)} Gold da sequência` : ""}`, "gold"); } return MODALS.diaria(); }
+    if (t.dataset.titleUse) { if (G.useTitle(t.dataset.titleUse)) toast("Título agora é o nome do seu time!", "gold"); return MODALS.profile(); } // v708
+    if (t.dataset.wkClaim) { if (G.wkClaim(t.dataset.wkClaim)) toast("Missão semanal resgatada!", "gold"); return MODALS.missoes(); } // v708
     if (t.dataset.dailySkip) { G.dailyDevSkip(); return MODALS.diaria(); }
     if (t.dataset.bossReveal) { bossChest.shown++; return MODALS.boss(true); }
     if (t.dataset.bossClose) { bossChest = null; return MODALS.boss(true); }
@@ -3273,14 +3504,17 @@
     if (t.dataset.mpAct) { mpUi.act = +t.dataset.mpAct; refreshFloats(true); return; }
     if (t.dataset.floatMin) { const w = floats[t.dataset.floatMin]; w.classList.toggle("min"); t.textContent = w.classList.contains("min") ? "▢" : "—"; return; }
     if (t.dataset.action === "reset-analyzer") { G.resetAnalyzer(); refreshFloats(); return; }
+    if (t.dataset.skBuy) { const id = t.dataset.skBuy, d = C.SKILL_DEF[id]; // v694: épica por Diamantes, confirma no segundo clique
+      if (skBuyArm !== id) { skBuyArm = id; toast(`${d.name}: toque de novo para comprar por ${C.SKILL_DIA_PRICE} Diamantes`); return; }
+      skBuyArm = null; const r = G.skBuy(id); toast(r.msg, r.ok ? "gold" : "bad"); if (r.ok) MODALS.habilidades(); return; }
     if (t.dataset.hbId || t.dataset.hbSlot !== undefined) { const r = t.dataset.hbId ? G.skillToggle(t.dataset.hbId) : (() => { const x = G.skillSlots()[+t.dataset.hbSlot]; return x ? G.skillToggle(x.id) : false; })(); if (r === "full") toast("Os 4 slots estão cheios: tire uma habilidade antes"); if (r) { MODALS.habilidades(); renderSkills.key = null; renderSkills(); } return; } // v638
     if (t.dataset.open) return t.dataset.open === "locked" ? MODALS.locked(t.dataset.what) : MODALS[t.dataset.open]();
     if (t.dataset.chestAll) { // v362: abre de uma vez; mostra a animação do melhor item e um resumo
       const res = G.openAllChests(t.dataset.chestAll === "*" ? null : t.dataset.chestAll); renderChests(); if (currentModal === "Espólios") MODALS.espolios();
       if (!res.length) return toast("Nenhum baú para abrir");
-      return lootNotes(res); // v380: só avisos de raro para cima, no canto
+      chestBoom(res); return lootNotes(res); // v380: só avisos de raro para cima, no canto · v690: animação do baú
     }
-    if (t.dataset.chest) { lootNotes([G.openChest(t.dataset.chest)]); renderChests(); if (currentModal && currentModal.startsWith("Baús")) MODALS.chests(); return; }
+    if (t.dataset.chest) { const o = G.openChest(t.dataset.chest); chestBoom([o]); lootNotes([o]); renderChests(); if (currentModal && currentModal.startsWith("Baús")) MODALS.chests(); return; }
     if (t.dataset.play) { // v296: contagem 3, 2, 1 + apito antes de começar a fase
       const n = +t.dataset.play; if (kickCd) return;
       if (n !== G.state.progress.stage && !G.canPickStage(n)) return;
@@ -3292,6 +3526,12 @@
     if (t.dataset.train) { G.setTraining(t.dataset.train === "1"); toast(G.state.training ? "Modo treino ligado" : "De volta às partidas"); return; }
     if (t.dataset.map) { if (G.switchMap(+t.dataset.map)) { closeModal(); toast(`Agora jogando o ${G.map.mode}`, "gold"); } return; }
     // v309: no treino o tamanho vem de quem treina, então trocar o modo pelo dev sai do treino e começa a partida do modo
+    if (t.dataset.ap) { apSel = t.dataset.ap; return actPickOpen(); } // v693: Novo Ato
+    if ("apOk" in t.dataset) { const p = G.state.roster.find((x) => x.uid === apSel); if (p && G.actPick(apSel)) { toast(`${p.name} subiu para o Nv ${p.level} e entrou no time!`, "gold"); fanfare(); apSel = null; closeModal(); apWait = 0; renderAll(); } return; }
+    if (t.dataset.pitchBuy) { // v693: primeiro clique pede confirmação no próprio botão
+      if (t.dataset.sure !== "1") { t.dataset.sure = "1"; t.classList.add("btn-hot"); t.innerHTML = "Confirmar compra"; return; }
+      const [id, cur] = t.dataset.pitchBuy.split(":"), r = G.buyPitch(id, cur); toast(r.msg, r.ok ? "gold" : "bad"); return MODALS.pitches();
+    }
     if (t.dataset.pitch) { if (G.setPitch(t.dataset.pitch)) { closeModal(); toast(`Agora jogando em: ${C.PITCHES.find((x) => x.id === t.dataset.pitch).name}`, "gold"); } return; }
     if (t.dataset.devMap || t.dataset.devStage) { if (G.state.training) { G.state.training = false; closeFloat("mapa"); } G.switchMap(t.dataset.devMap ? +t.dataset.devMap : G.state.progress.map, t.dataset.devStage ? +t.dataset.devStage : 1); renderObjective(); renderDock(); return; }
     if (t.dataset.sk !== undefined) { MODALS.habilidades(); return; } // v638: abre o pop-up de habilidades do time

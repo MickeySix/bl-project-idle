@@ -3,7 +3,7 @@
 window.BL = window.BL || {};
 
 // Versão do jogo: sobe a cada publicação. O index.html usa o mesmo número (?v=) para o navegador não usar arquivos velhos.
-BL.BUILD = "687";
+BL.BUILD = "710";
 // v336 · link do Discord oficial (aba Comunidade). Vazio = botão avisa "em breve"
 BL.DISCORD_URL = "";
 
@@ -333,11 +333,12 @@ BL.CONFIG = {
   // v186 · Recompensa diária: ciclo de 30 dias, 1 resgate por dia (vira à meia-noite local). ★ = marco.
   DAILY_REWARDS: [
     { k: "gold", n: 100 }, { k: "agua", n: 3 }, { k: "xp", n: 300 }, { k: "gatorade", n: 2 }, { k: "gold", n: 500 },
-    { k: "gold", n: 200 }, { k: "agua", n: 5 }, { k: "xp", n: 500 }, { k: "gatorade", n: 3 }, { k: "boneco", rarity: "raro" },
-    { k: "gold", n: 300 }, { k: "agua", n: 8 }, { k: "xp", n: 800 }, { k: "gatorade", n: 5 }, { k: "gold", n: 1500 },
-    { k: "gold", n: 500 }, { k: "agua", n: 10 }, { k: "xp", n: 1200 }, { k: "gatorade", n: 8 }, { k: "boneco", rarity: "epico" },
-    { k: "gold", n: 750 }, { k: "agua", n: 15 }, { k: "xp", n: 1600 }, { k: "gatorade", n: 10 }, { k: "gold", n: 3000 },
-    { k: "gold", n: 1000 }, { k: "agua", n: 20 }, { k: "xp", n: 2000 }, { k: "gatorade", n: 15 }, { k: "boneco", rarity: "lendario" },
+    // v696 (Mickey): dias 7 a 30 redefinidos por ele. k novo: "sup" (item de C.SUPPLIES por id) e "chest" (baú por id); bebida = id de C.CONSUMABLES
+    { k: "gold", n: 200 }, { k: "gatorade", n: 5 }, { k: "xp", n: 500 }, { k: "gatorade", n: 20 }, { k: "boneco", rarity: "raro" },
+    { k: "gold", n: 500 }, { k: "suco", n: 10 }, { k: "xp", n: 800 }, { k: "gatorade", n: 25 }, { k: "gold", n: 2000 },
+    { k: "sup", id: "tp-nivel", n: 2 }, { k: "chest", id: "epico", n: 1 }, { k: "sup", id: "fi-azul", n: 10 }, { k: "sup", id: "fi-roxa", n: 1 }, { k: "boneco", rarity: "epico" },
+    { k: "gold", n: 750 }, { k: "suco", n: 15 }, { k: "sup", id: "tp-nivel", n: 1 }, { k: "gatorade", n: 10 }, { k: "gold", n: 3000 },
+    { k: "gold", n: 1000 }, { k: "gatorade", n: 20 }, { k: "sup", id: "tp-nivel", n: 1 }, { k: "gatorade", n: 30 }, { k: "chest", id: "lendario", n: 1 },
   ],
   DAILY_MILESTONES: [5, 10, 15, 20, 25, 30],
   BOSS_CHEST_BASE: { xp: 400, gold: 250, diamantes: 3 },
@@ -556,6 +557,12 @@ BL.CONFIG = {
   // v312 · Seus mapas (campos): imagem, calibragem da perspectiva (ver doc 10 §3) e efeito na partida, para os dois times.
   // fx.stats = todos os atributos ×; fx.drain = gasto de energia ×; fx.tackle = chance de o bote/carrinho dar certo ×;
   // fx.run = corrida × (o teto RUN_MAX continua valendo). Fora do dev só o Estádio está liberado (regra de desbloqueio a definir)
+  // v693 (Mickey): cada campo (menos o Estádio) é comprado uma vez, por Gold ou por Diamantes
+  PITCH_COST: { gold: 50000, dia: 30 },
+  // v693 (Mickey): campo da casa de cada Boss (o Boss do Ato joga nele, com o efeito do campo valendo). Escolhido pelo perfil de status:
+  // Deserto (energia cai mais rápido) = Físico mais alto; Street (bote acerta menos) = Drible bem acima da Defesa; Espaço (corrida +8%) = Velocidade 31;
+  // Floresta (tudo +5%) = os mais completos no total; Estádio (sem efeito) = primeiro e último Boss
+  BOSS_HOME: { "shoei-barou": "estadio", "seishiro-nagi": "rua", "meguru-bachira": "floresta", "sae-itoshi": "floresta", "hyoma-chigiri": "espaco", "rensuke-kunigami": "deserto", "don-lorenzo": "deserto", "rin-itoshi": "rua", "hugo-vivian": "espaco", "yoichi-isagi": "estadio" },
   PITCHES: [
     { id: "estadio", name: "Estádio BL PROJECT", img: "img/campo.jpg", desc: "Campo oficial. Sem efeito.", fx: {} },
     { id: "floresta", name: "Floresta", img: "img/campos/floresta.jpg", desc: "Grama viva: todos os atributos +5%.", fx: { stats: 1.05 },
@@ -582,6 +589,8 @@ BL.CONFIG = {
     { id: "31o", name: "3-1 ofensivo", shape: [[0.3, 0.45], [0.39, 0.18], [0.39, 0.78], [0.71, 0.46]], pivoX: 0.71, pivoR: 220, fixoPress: 420, press: 1 },
   ], // v455: padrão (Fixo, Ala Def, Ala Of, Pivô), x = fração do campo a partir do nosso gol
   RUN_SCALE: 0.765,          // v448: mais 10% (0,85 × 0,9) ·           // v442 (Mickey): todos os jogadores correm 15% menos (vale depois do teto)
+  // v699 (Mickey: jogadores mais rápidos, a bola não): corrida × (1 + at1 − step × (IV − 1)) com o IV de Velocidade puro; teto RUN_MAX × capK. Cartão de decisão: todos +31% e teto 210 → 275 (recomendado, aguardando o Mickey)
+  RUN_BOOST: null, // v701 (Mickey: "volte para a versão normal"): desligado; era { at1: 0.31, step: 0, capK: 1.31, modes: [2, 3] }
   RUN_MAX: 210,              // teto da corrida dos jogadores de linha (px/s), em qualquer nível
   HALF_SECONDS_NORMAL: 51, PACE_NORMAL: 1, /* v617 (Mickey): voltou como antes (51 s, ritmo normal) · v613–v616 desfeitas */ HALF_SECONDS: 51, /* v550 (Mickey): partida 15% mais curta (antes 60) */          // duração real de cada tempo na velocidade 1×
   HALF_STOPPAGE_MAX: 12,     // v130: máx. de segundos esperando o lance acabar antes do intervalo
@@ -1059,8 +1068,11 @@ BL.CONFIG = {
   // v623 (Mickey): como se ganha habilidade ainda vai ser definido; por enquanto todas liberadas (SKILL_FREE) e sem livro nos baús/Boss.
   // Livros (quando ligar): chance por raridade do baú e no Boss; raridade do livro sorteada pelo peso
   SKILL_FREE: false, // v653: todas as 14 têm regra de liberação (abaixo); o modo dev continua com todas
-  SKILL_UNLOCK_LV: { direct: 1, monstro: 10, calibrado: 25, tabela: 50, energia: 75, reta: 100 }, // v652 (Mickey): habilidades raras liberadas pelo nível da conta
-  SKILL_UNLOCK_CLEAR: { voleio: [0, 2], pantera: [1, 2], muralha: [2, 2], ninja: [9, 2], magico: [0, 3], curvado: [1, 3], ego: [2, 3], visao: [9, 3] }, // v653 (Mickey): [mapa, dificuldade] = vencer o Boss (fase 10) daquele ato naquela dificuldade: Épicas no Inferno (2), Lendárias no Tormento (3); mapa 0 = Ato 1 (1v1), 1 = Ato 2 (2v2), 2 = Ato 3 (3v3), 9 = Ato 10 (4v4)
+  SKILL_UNLOCK_LV: { direct: 1, monstro: 10, reta: 15, calibrado: 25, energia: 30, tabela: 40 }, /* v694 (Mickey): todas as raras até o Nv 50 da conta; era tabela 50, energia 75, reta 100 */ // v652 (Mickey): habilidades raras liberadas pelo nível da conta
+  // v694 (Mickey): lendárias saem dos Atos e passam a vir de baú: p = chance por baú aberto de liberar uma lendária que falta (lendário 20%, épico bem menor)
+  SKILL_UNLOCK_CHEST: { ids: ["magico", "curvado", "ego", "visao"], p: { lendario: 0.2, epico: 0.03 } },
+  SKILL_DIA_PRICE: 100, // v694 (Mickey: épica libera nos Atos ou comprando com Diamantes). Preço provisório, o Mickey ainda vai definir
+  SKILL_UNLOCK_CLEAR: { voleio: [0, 2], pantera: [1, 2], muralha: [2, 2], ninja: [9, 2] }, // v653 (Mickey): [mapa, dificuldade] = vencer o Boss (fase 10) daquele ato naquela dificuldade: Épicas no Inferno (2), Lendárias no Tormento (3); mapa 0 = Ato 1 (1v1), 1 = Ato 2 (2v2), 2 = Ato 3 (3v3), 9 = Ato 10 (4v4)
   SKILL_BOOK: { chest: { epico: 0, lendario: 0 }, boss: 0, w: { raro: 70, epico: 25, lendario: 5 }, wBoss: { raro: 40, epico: 40, lendario: 20 } },
   // inimigos: chance de cada jogador vir com 1 habilidade (por tamanho do mapa); Boss sempre
   SKILL_ENEMY: { p: { 1: 0, 2: 0.05, 3: 0.1, 4: 0.2 }, boss: 1, w: { raro: 70, epico: 25, lendario: 5 } },
@@ -1118,11 +1130,17 @@ BL.CONFIG = {
     rar: { comum: 1, incomum: 1.1, raro: 1.2, epico: 1.35, lendario: 1.5, despertado: 1.75 }, shiny: 0.25, maxLevels: 3,
     // v664 (Mickey: começo bem mais rápido, ~5 níveis na 1ª partida; o idle duro começa no 4×4): XP da partida × early[mapa] e teto de níveis por partida maxByMap[mapa] nos mapas 1×1, 2×2 e 3×3
     // v668 (Mickey): vencendo no nível da fase, 2×2 dá entre 3 e 4 níveis por partida e 3×3 dá 3
-    early: [3, 5, 6], maxByMap: [6, 4, 3] },
+    early: [3, 5, 6], maxByMap: [10, 10, 10],
+    // v688 (Mickey: no 1×1, 2×2 e 3×3 o jogador sobe ~10 níveis por partida e joga cada fase uma vez até o Boss; o idle de verdade começa no 4×4):
+    // vencendo nos mapas 0..fast.maps-1, quem jogou sobe pelo menos até o 1º nível da fase seguinte (levelMin + fase × níveis da fase), no máximo maxByMap níveis por partida
+    // v692 (Mickey): sync = ao começar a partida nesses mapas, titular ou reserva abaixo do 1º nível da fase sobe até ele (na fase do Boss, até o nível do Boss: 100 contra 100)
+    fast: { maps: 3, sync: true } },
   // v585/v587 (Mickey): começo tranquilo. Inimigos comuns (não o Boss nem Shiny) dos mapas 1×1, 2×2 e 3×3 com raridade até maxRarity e status × statMul.
   // Meta de vitória no mesmo nível, time de Comuns: 1×1 ~65%, 2×2 ~55%, 3×3 ~45%. O 4×4 não muda.
   FIRST_WIN: { statMul: 0.55 }, // v680 (beta): no 1×1, até a primeira vitória da conta, o adversário entra bem mais fraco
-  EASY_MODES: { 1: { maxRarity: "raro", statMul: 0.9 }, 2: { maxRarity: "epico", statMul: 0.93 }, 3: { maxRarity: "epico", statMul: 1 } },
+  // v692 (Mickey: 1×1 com ~70% de vitória por partida, 2×2 ~60%, 3×3 ~50%). Medido com time de Comuns no 1º nível da fase, sem habilidade, EV ou item (~90 partidas por valor):
+  // 1×1 0,80 → 68% e 0,70 → 77%; 2×2 0,75 → 50% e 0,65 → 64%; 3×3 0,70 → 43% e 0,60 → 64%. bossMul = status do Boss do mapa (2×2 0,55 → 50%; 3×3 0,30 → 52%)
+  EASY_MODES: { 1: { maxRarity: "raro", statMul: 0.78 }, 2: { maxRarity: "epico", statMul: 0.67, bossMul: 0.52 }, 3: { maxRarity: "epico", statMul: 0.61, bossMul: 0.32 } }, // v704: 2×2 0,68 → 0,67, 3×3 0,6 → 0,61 (mais haxball e passe) · v703: 3×3 statMul 0,67 → 0,6 (o 3×3 mais dinâmico com estilo por posição voltou a ~49%)
   // v587 (Mickey): expoente do peso do nível relativo por tamanho do time (padrão 1,5). Menor = estar abaixo do nível pesa menos.
   LEVEL_REL_EXP: { 1: 1, 2: 1, 3: 1 },
 
@@ -1149,6 +1167,23 @@ BL.CONFIG = {
   // v265/v267 · dois baús (Mickey), todos guardados no Espólios: RARO ("azul") a cada gol seu ou vitória;
   // COMUM ("padrao") cai a qualquer momento da partida (chance a cada 10 s de jogo), com itens piores.
   CHEST_ON_GOAL: 0.08,       // chance de baú azul a cada gol seu (v477, Mickey: equipamento caía fácil demais; era 0.30)
+  DAILY_STREAK: { base: 50, step: 40, max: 1250 }, // v708 (Mickey: "cada dia dá algumas moedas stackando mais e mais"): Gold extra no resgate da Diária = base + step × (dias seguidos − 1), até max (dia 1 = 50, dia 7 = 290, dia 30 = 1.210). Perdeu um dia, volta para o começo
+  WEEKLY: [ // v708 (Mickey: missões semanais, "não deixe muito roubado"): zeram toda segunda 0h (horário do aparelho); progresso conta sozinho, prêmio resgatado em Missões
+    { id: "win", text: "Vença 60 partidas", n: 60, rw: [{ k: "gold", n: 2500 }, { k: "chest", id: "azul", n: 1 }] },
+    { id: "goals", text: "Marque 150 gols", n: 150, rw: [{ k: "gold", n: 1500 }, { k: "sup", id: "pr-forte", n: 2 }] },
+    { id: "steal", text: "Roube 5 jogadores", n: 5, rw: [{ k: "sup", id: "pr-elite", n: 1 }, { k: "gold", n: 1000 }] },
+    { id: "chest", text: "Abra 20 baús", n: 20, rw: [{ k: "chest", id: "epico", n: 1 }] },
+  ],
+  TITLES: [ // v708 (Mickey: "alguns títulos que podem ser o nome inteiro do time; não crie muitos"): conquistas no Perfil; liberado, vira o nome do time com 1 clique (grátis). k: steals/goals/wins (carreira), boss (vitórias em Boss), dex (personagens na Coleção)
+    { id: "ladroes", name: "Ladrões do Blue Lock", k: "steals", n: 25, desc: "Roube 25 jogadores" },
+    { id: "maquina", name: "Máquina de Gols", k: "goals", n: 1000, desc: "Marque 1.000 gols" },
+    { id: "colec", name: "Os Colecionadores", k: "dex", n: 30, desc: "Encontre 30 personagens na Coleção" },
+    { id: "boss", name: "Caçadores de Boss", k: "boss", n: 25, desc: "Vença 25 Boss" },
+    { id: "invictos", name: "Os Invictos", k: "wins", n: 500, desc: "Vença 500 partidas" },
+  ],
+  STEAL_PITY: { add: 0.25, max: 12, sure: 100, near: 6, bossSure: false }, // v709 (Mickey): Boss e Mini Boss nunca viram roubo garantido pela sorte (o bônus de até +max ainda vale)
+  // v708 (Mickey: "gostei, mas não deixe fácil"): cada roubo com Proposta que falha soma add pontos na chance (até +max); na falha número sure o próximo é garantido; zera ao roubar. near = falhou por menos que isso → "Quase! Faltou X%"
+  CHEST_PITY: { lendario: 80 }, // v708 (Mickey: "não deixe fácil"): a cada baú ganho sem Lendário soma 1; ao chegar no número, o próximo baú vira Lendário (zera ao ganhar um Lendário)
   CHEST_ON_WIN: 0.10,        // chance de baú azul ao vencer a partida (v477: era 0.25)
   CHEST_STD_PER_10S: 0.01,   // chance de baú padrão a cada 10 s de partida (fora do treino) ≈ 3,5 por hora (v477: era 0.02)
   // v362 (Mickey): sem limite de baús guardados no Espólios (antes CHEST_MAX_PENDING = 6 por tipo)
@@ -1182,7 +1217,7 @@ BL.CONFIG = {
   // v558 (Mickey): Prólogo = mapa 1 (1-1 a 1-10) até vencer o Boss dele pela 1ª vez. Começa direto na 1-1 (sem treino);
   // na 1-10 o Boss vem como Mini Boss (mais fraco, mas com aura, arena e buff) e a 1ª vitória contra ele roda uma roleta
   // que rouba um personagem Comum de graça (sem gastar Proposta), liberando o 2×2.
-  PROLOGUE: { map: 0, noTraining: true, mini: { title: "Mini Boss", level: 95, statMul: 0.8, bossBuff: 0.05, userDebuff: 0.02 }, stealRarity: "comum" },
+  PROLOGUE: { map: 0, noTraining: true, mini: { title: "Mini Boss", level: 95, statMul: 0.6, /* v692: era 0,8 (3% de vitória medida); 0,62 → 59% */ bossBuff: 0.05, userDebuff: 0.02 }, stealRarity: "comum" },
   // v561 (Mickey) · X1 (1×1): fôlego temporário (0-100) de cada jogador. Com a bola gasta devagar (hold/s parado, run/s correndo),
   // drible, chute, push e blade gastam na hora; sem a bola recupera rec/s. Abaixo de low: drible com −lowPen no dado e conduz × lowRun.
   // push ball: toca a bola dist px à frente e corre na velocidade normal atrás (o marcador aposta corrida). Blade: levanta por cima do marcador.
@@ -1190,10 +1225,15 @@ BL.CONFIG = {
   // estilo (FIFA Street): drible +drib, drible humilhante (humil ou crítico) +humilN, push +push, blade +blade, até max stacks;
   // o gol vale 1 + floor(stacks / per) (até maxGoal); perder a bola zera o stack do time. Sem misericórdia no X1.
   // XP no X1: cada gol vale goalK × XP da partida (fase) e cada drible vale drib × um gol.
-  X1: { fol: { run: 1.2, runR: 0.8, drib: 4, shot: 8, push: 4, blade: 7, rec: 10, low: 30, lowPen: 3, lowRun: 0.85 },
-    speed: 1.06, // v565 (Mickey): 8% mais lento que a v563 (1,15 × 0,92) · v563: X1 15% mais rápido (o relógio compensa, a duração não muda)
+  SMALL_DYN: { 2: { think: 0.55, range: 70, shot: 1.5, drib: 1.25, duelCd: 1.2, stun: 0.75, gkHold: 0.45, pass: 3, holdK: 0.3, hax: 25, haxFree: 420, wall: 1, wallHeld: 0.25, haxB: { k: 1.2, t: 1.2 }, tackle: { speed: [200, 300], spread: 0.35, self: 0, stun: 0.5 }, recov: { k: 1.2, gap: 110, near: 35, t: 1.6 }, wing: { p: 1, edge: 70, cut: 170, go: 6, passK: 0.4, mates: 1 } },
+    3: { think: 0.55, range: 60, shot: 1.4, drib: 1.2, duelCd: 1.2, stun: 0.8, gkHold: 0.5, pass: 3, holdK: 0.3, hax: 15, haxFree: 420, wall: 1, wallHeld: 0.25, haxB: { k: 1.2, t: 1.2 }, tackle: { speed: [200, 300], spread: 0.35, self: 0, stun: 0.5 }, recov: { k: 1.2, gap: 110, near: 35, t: 1.6 }, wing: { p: 1, edge: 70, cut: 170, go: 6, passK: 0.4, mates: 1 } } }, // v705 (Mickey: "pouquíssimos passes", "50% ala e 50% meio com a bola", ~15 haxballs por time, 5 curtos): pass = × peso do passe; holdK = × tempo que segura a bola livre antes de tocar (CARRY_FREE); hax = × passe haxball (as duas paredes, mesmo com linha aberta até haxFree px; opcional haxLong [px, ×]); wall = × haxball para ele mesmo, após wallHeld s; wing = cada posse vai pela ala com chance p (edge px da lateral, até cut px do gol, conduz × go e toca × passK no caminho), companheiros abrem para a ala (mates 0-1); medido ~50% do tempo com a bola nos terços laterais. haxB = quem busca o haxball corre × k por t s; tackle = o bote certo espirra a bola, quem perdeu fica stun s no chão; recov = depois corre × k para ficar gap px entre a bola e o próprio gol (até near px ou t s) e só então volta ao bote. think/range/shot/drib/duelCd/stun/gkHold como na v703
+
+  SMALL_FIT: { miss: 0.9 }, // v703 (Mickey: no 2×2 e 3×3 a tática vem do estilo dos jogadores): quem joga fora do setor natural do personagem (Fixo/Ala Def = defesa, Ala Of/Pivô = ataque) fica com status × miss. Ex.: Ala Def + Fixo rendem mais no Defensivo. Os dois times; o adversário escolhe a tática que encaixa
+  MODE_SPEED: { 2: 1.3, 3: 1.3 }, // v702 (Mickey: "mais 20%, quero mais dinâmico"): 1,1 → 1,3 · v701: 1,1 · v698: 1,3 // v698 (Mickey: 2×2 e 3×3 muito devagar, +30%). Mesmo esquema do X1.speed: a partida anda mais rápido, o relógio não
+  X1: { mercy: true, /* v693 (Mickey): 4 gols de vantagem também encerram o 1×1 */ fol: { run: 1.2, runR: 0.8, drib: 4, shot: 8, push: 4, blade: 7, rec: 10, low: 30, lowPen: 3, lowRun: 0.85 },
+    speed: 1.31, // v688 (Mickey: 1×1 monótono, +0,25 na velocidade; era 1,06) // v565 (Mickey): 8% mais lento que a v563 (1,15 × 0,92) · v563: X1 15% mais rápido (o relógio compensa, a duração não muda)
     // v563: chute só com shotMin stacks e a menos de shotDist px do gol; sem isso vai para cima do marcador (carry × faceK; perto do gol, turnX, volta para driblar)
-    style: { shotMin: 2, /* v654 (Mickey): 5 → 2 */ shotDist: 330, faceK: 1.6, turnX: 260, drib: 1, humilN: 2, humil: ["CANETA!", "CHAPÉU!", "ROLETA!", "LAMBRETA!"], push: 1, blade: 2, max: 12, per: 8, maxGoal: 1 /* v654 (Mickey): gol sempre vale 1 (sem gol x2 com stack) */ },
+    style: { shotMin: 1, /* v693 (Mickey): 1 drible já libera o chute · v654: 5 → 2 */ shotDist: 330, faceK: 1.6, turnX: 260, drib: 1, humilN: 2, humil: ["CANETA!", "CHAPÉU!", "ROLETA!", "LAMBRETA!"], push: 1, blade: 2, max: 12, per: 8, maxGoal: 1 /* v654 (Mickey): gol sempre vale 1 (sem gol x2 com stack) */ },
     push: { w: 0.4, minFol: 30, minGoal: 300, front: 110, dist: [150, 210], speed: 330, cd: 1.6 },
     blade: { w: 3, minFol: 30, near: 100, over: 80, speed: 360, cd: 1.6 }, // v564: blade 2× mais
     // v564 (Mickey): caneta (bola entre as pernas) e drible da vaca (bola por um lado, ele pelo outro); a bola sai do pé e só conta se ele pegar de volta.
@@ -1213,7 +1253,9 @@ BL.CONFIG = {
     combo: { win: 1.4, chain: 2.6, k: 1.6, hax: 3, minFol: 15, stack: 1, blade2: 0.6 }, // v570: blade2 × Drible/31 = chance de emendar outro blade
     mood: [0.4, 1.6], // v565: cada jogador sorteia, por partida, um peso para cada truque (X1 mais aleatório)
     xp: { goalK: 0.3, drib: 0.8 } },
-  STEAL_GIFT: { id: "pr-basica", n: 205 }, // v680 (Mickey): +200
+  HEAL_ONLY_HALFTIME: true, // v690 (Mickey): Água, Gatorade e as outras bebidas só no intervalo (Vestiário); a cura automática do VIP continua durante a partida
+  STEAL_SUSPENSE_MS: 2600, // v690 (Mickey): tempo do contrato tremendo antes de mostrar se roubou
+  STEAL_GIFT: { id: "pr-basica", n: 5 }, // v690 (Mickey): as +200 da v680 agora chegam pelo Correio de boas-vindas, junto com 10 Águas
   DIAMOND_DROP: { win: 0.002, n: 1 }, // v687 (Mickey): 0,5% → 0,2% (1 em 500 vitórias). v680: chance mínima de 1 Diamante a cada vitória (qualquer fase); única fonte grátis
   // // v526: Propostas Básicas de presente (conta nova e saves antigos, uma vez), já equipadas
   // xp: usa na Mochila num jogador escolhido (só o jogador ganha, a conta não)
@@ -1354,19 +1396,25 @@ BL.CONFIG = {
     ],
     names: ["Despertar do Ego", "Seleção Sub-20", "Liga Neo Egoísta", "Copa dos Prodígios", "Arena dos Monstros", "Coroa do Artilheiro"],
     start: [2026, 10], // ano e mês (0 = janeiro) da Temporada 1
-    // ciclo de 10 níveis (índice = nível % 10); k: gold, dia, chest (padrao/azul/epico/lendario) ou id de item (Mochila); n cresce +50% a cada 50 níveis
+    // v706 (Mickey: "melhore as opções e aumente gradualmente; tire os Master Contracts"): ciclo de 10 níveis (índice = nível % 10; 0 = níveis 10, 20...);
+    // k: gold, chest (padrao/azul/epico/lendario) ou id de item (Mochila). n cresce aos poucos: × (1 + (nível − 1) / grow) (nível 101 = ×2, nível 200 ≈ ×3);
+    // baús sobem um degrau a partir do nível chestUp (Padrão → Azul → Épico → Lendário). Sem Diamantes e sem Master Contract
+    grow: 100, chestUp: 101,
     free: [
-      { k: "chest", id: "epico", n: 1 }, { k: "gold", n: 200 }, { k: "agua", n: 3 }, { k: "chest", id: "padrao", n: 2 }, { k: "isotonico", n: 2 },
-      { k: "chest", id: "azul", n: 1 }, { k: "gold", n: 400 }, { k: "xp-video", n: 1 }, { k: "gatorade", n: 2 }, { k: "pr-basica", n: 1 },
+      { k: "chest", id: "azul", n: 1 }, { k: "gold", n: 300 }, { k: "agua", n: 3 }, { k: "chest", id: "padrao", n: 1 }, { k: "xp-video", n: 2 },
+      { k: "isotonico", n: 2 }, { k: "pr-basica", n: 2 }, { k: "gold", n: 500 }, { k: "fi-verde", n: 3 }, { k: "gatorade", n: 2 },
     ],
     prem: [
-      { k: "chest", id: "lendario", n: 1 }, { k: "gold", n: 1000 }, { k: "gatorade", n: 5 }, { k: "chest", id: "azul", n: 2 }, { k: "xp-treino", n: 1 },
-      { k: "chest", id: "epico", n: 1 }, { k: "gold", n: 2000 }, { k: "pr-forte", n: 1 }, { k: "fi-verde", n: 3 }, { k: "tp-nivel", n: 1 },
+      { k: "chest", id: "epico", n: 1 }, { k: "gold", n: 1000 }, { k: "gatorade", n: 3 }, { k: "chest", id: "azul", n: 1 }, { k: "xp-treino", n: 1 },
+      { k: "fi-verde", n: 5 }, { k: "pr-forte", n: 1 }, { k: "gold", n: 2000 }, { k: "fi-azul", n: 3 }, { k: "pr-elite", n: 1 },
     ],
-    // níveis especiais (trocam o ciclo): lista de prêmios
+    // níveis especiais a cada 25 (trocam o ciclo), cada um melhor que o anterior
     special: {
-      free: { 50: [{ k: "gold", n: 5000 }], 100: [{ k: "gold", n: 10000 }, { k: "chest", id: "lendario", n: 1 }], 150: [{ k: "gold", n: 5000 }], 200: [{ k: "gold", n: 25000 }, { k: "chest", id: "lendario", n: 2 }] },
-      prem: { 50: [{ k: "pr-elite", n: 2 }, { k: "gold", n: 5000 }], 100: [{ k: "aura", id: "celeste" }, { k: "pr-bluelock", n: 1 }, { k: "chest", id: "lendario", n: 3 }, { k: "gold", n: 20000 }], 150: [{ k: "pr-elite", n: 3 }, { k: "gold", n: 10000 }], 200: [{ k: "aura", id: "ego" }, { k: "pr-bluelock", n: 2 }, { k: "chest", id: "lendario", n: 5 }, { k: "gold", n: 40000 }] },
+      free: { 25: [{ k: "gold", n: 2000 }, { k: "chest", id: "azul", n: 1 }], 50: [{ k: "gold", n: 5000 }, { k: "chest", id: "epico", n: 1 }], 75: [{ k: "gold", n: 6000 }, { k: "fi-azul", n: 5 }], 100: [{ k: "gold", n: 10000 }, { k: "chest", id: "lendario", n: 1 }],
+        125: [{ k: "gold", n: 12000 }, { k: "chest", id: "epico", n: 2 }], 150: [{ k: "gold", n: 15000 }, { k: "tp-nivel", n: 1 }], 175: [{ k: "gold", n: 18000 }, { k: "chest", id: "epico", n: 3 }], 200: [{ k: "gold", n: 25000 }, { k: "chest", id: "lendario", n: 2 }] },
+      prem: { 25: [{ k: "pr-elite", n: 1 }, { k: "chest", id: "epico", n: 1 }], 50: [{ k: "pr-elite", n: 2 }, { k: "gold", n: 5000 }, { k: "tp-nivel", n: 1 }], 75: [{ k: "fi-roxa", n: 1 }, { k: "chest", id: "epico", n: 2 }],
+        100: [{ k: "aura", id: "celeste" }, { k: "chest", id: "lendario", n: 3 }, { k: "gold", n: 20000 }, { k: "tp-nivel", n: 2 }], 125: [{ k: "pr-elite", n: 3 }, { k: "fi-roxa", n: 2 }], 150: [{ k: "pr-elite", n: 4 }, { k: "gold", n: 15000 }, { k: "chest", id: "lendario", n: 2 }],
+        175: [{ k: "tp-nivel", n: 3 }, { k: "fi-roxa", n: 3 }], 200: [{ k: "aura", id: "ego" }, { k: "chest", id: "lendario", n: 5 }, { k: "gold", n: 40000 }, { k: "tp-nivel", n: 5 }] },
     },
     // auras exclusivas (só visual, ficam para sempre): escolha 1 jogador na tela do Game Pass para usar cada uma
     auras: { celeste: { name: "Aura Celeste", color: "#5ee7ff", lv: 100 }, ego: { name: "Aura do Ego", color: "#b06bff", lv: 200 } },
@@ -1375,6 +1423,7 @@ BL.CONFIG = {
   MARKET: { key: "blpi_market", fee: 0.05, maxListings: 10, hours: [1, 6, 12, 24, 48], minGold: 10, minDia: 1, bidStep: 0.05, snipe: 30, snipeMax: 30, keepDays: 7, page: 20 }, // v621 (Mickey): Casa de Leilões · taxa de 5% só na venda (diamante arredonda para cima, mín. 1), até 10 anúncios, lance mínimo +5% do maior, lance nos últimos snipe s prorroga (até snipeMax min a mais)
   SELL_RATE: 0.25,           // v475: vender na Loja devolve 25% do preço de compra em Gold
   SHOP_MAX_QTY: 999,         // v475: máximo por compra
+  MGR_CONSUME: true,         // v691 (Mickey, decisão em cartão): item de treinador equipado vale por 1 partida de fase; outro igual na Mochila entra sozinho no lugar
   MGR_SLOTS: 3,              // v473: espaços de itens do treinador (os efeitos somam)
   LOOT_NOTE_MIN: "raro",     // v380: ao abrir baús, só itens desta raridade para cima mostram aviso no canto (2 s)
 
@@ -1393,7 +1442,7 @@ BL.CONFIG = {
   SLEEP_TURBO_PER_PLAYED: 0.5, SLEEP_TURBO_MAX_H: 8, SLEEP_MATCH_SEC_EST: 150, // ritmo = XP por partida da fase atual × partidas por hora (150 s cada)
   // v290: Correio. Mensagens do sistema entregues a toda conta (novas ids entram nos saves antigos). gift = anexo para resgatar (valores provisórios)
   MAIL_SYSTEM: [
-    { id: "boas-vindas", title: "Bem-vindo ao BL PROJECT IDLE", text: "Seu time acabou de entrar no BL PROJECT. Aqui chegam avisos do sistema e presentes. Resgate o anexo deste correio para começar com um reforço.", gift: { gold: 1000 } },
+    { id: "boas-vindas", title: "Bem-vindo ao BL PROJECT IDLE", text: "Seu time acabou de entrar no BL PROJECT. Aqui chegam avisos do sistema e presentes. Resgate o anexo deste correio para começar com um reforço.", gift: { gold: 1000, items: { "pr-basica": 200, agua: 10 } } }, // v690 (Mickey): kit do começo; items = Mochila (C.SUPPLIES ou C.CONSUMABLES)
     { id: "loja-diamantes", title: "Nova loja de Diamantes", text: "A janela Comprar Diamantes ganhou pacotes com desconto, o Clube Diamante e a compra de quantidade exata. A compra real ainda não está ativa nesta versão.", gift: null },
   ],
   // v289: loja de Diamantes (vitrine; compra real ainda não ativa). Preço avulso por diamante e pacotes com desconto (ref do Mickey)
@@ -1670,6 +1719,8 @@ BL.CONFIG = {
     maxLevel: 100,
     // Requisitos do nível L (1–100): jogador Nv mínimo e Poder mínimo (BL.power). O Poder pede um pouco mais de status
     // (IV, nature, EV, itens) conforme o nível sobe, então não basta só nível.
+    // v694 (Mickey): no nível 1 (Campo de Terra) entra qualquer jogador; abaixo do Poder pedido a chance de falhar = falta de Poder (%) × failK, até failMax. Falhou: volta com failKeep do Gold e do XP, sem item e sem progresso
+    open: { levels: 1, failK: 1.5, failMax: 0.6, failKeep: 0.3 },
     lvReq: (L) => { const lv = Math.max(1, Math.round(1 + Math.pow(L - 1, 1.5) * 0.6)); return { lv, power: Math.round(850 * (1 + (lv - 1) * 0.012) * (0.9 + L * 0.004) / 10) * 10 }; },
     lvReward: (L) => ({ gold: Math.round(20 + L * 4), xp: Math.round(60 + (1 + Math.pow(L - 1, 1.5) * 0.6) * 6) }),
     // v164 (Mickey): cada nível tem a sua barra de progresso. Só a expedição no nível atual (o mais alto liberado) enche a barra,

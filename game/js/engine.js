@@ -602,7 +602,7 @@ window.BL = window.BL || {};
     statMod(e, k) { const m = this.mods[e.team] || {}; return (m.all || 1) * (m[k] || 1); }
     // e.rel = nível relativo ao time adversário (1 = mesmo nível): quem tem nível mais alto chuta, passa, corre e decide melhor
     posIv(e, k) { const P = C.POS_IV; if (!P) return 1; const r = e.fixo ? P.fixo : e.alaDef ? P.alaDef : e.alaOf ? P.alaOf : e.pivo ? P.pivo : null; return (r && r[k]) || 1; } // v500 (Mickey): IVs que mais contam por posição (Ala Def 1× em tudo)
-    iv(e, k) { return BL.baseStat(e.p, k) * this.cmul(e, k) * this.posIv(e, k) * this.fatigue(e) * this.arenaMult(e) * this.statMod(e, k) * (e.rel || 1) * (this.pfx.stats || 1); }
+    iv(e, k) { return BL.baseStat(e.p, k) * this.cmul(e, k) * this.posIv(e, k) * this.fatigue(e) * this.arenaMult(e) * this.statMod(e, k) * (e.rel || 1) * (this.pfx.stats || 1) * this.fitK(e); }
     // ataca agora? Time sem atacantes vira todo ataque quando está com a bola (contra-ataque)
     // v197 · ideia de jogo (visão do Mickey): "build" = formação defensiva (mais defensores que atacantes, fora do 4×4)
     // constrói com passes curtos e sobe o bloco junto; "attack" = ofensiva (mais atacantes, e a Blitz do 4×4) troca
@@ -937,9 +937,11 @@ window.BL = window.BL || {};
       // velocidade de corrida legível para os sprites em qualquer nível (pedido do Mickey): o nível NÃO aumenta a corrida
       // direto; velocidade (IV, nature, itens, nível relativo) muda pouco e tem teto. O nível pesa em disputas, passe e chute
       if (e.gk) return 250 * 0.85 * C.RUN_SCALE;
-      const vIv = this.iv(e, "velocidade"), s = Math.min(C.RUN_MAX, (180 + (C.RUN_IV ? this.interp(C.RUN_IV, vIv) : 2 * vIv)) * 0.85 * (this.pfx.run || 1)) * (1 - ((this.cfx[1 - e.team] || {}).slow || 0)); // v312: Espaço corre mais, sem passar do teto; v417: Sato Ren deixa o inimigo mais lento
+      const n0 = this.field(0).length, RB = C.RUN_BOOST && !this.training && !this.scrimmage && n0 === this.field(1).length && (!C.RUN_BOOST.modes || C.RUN_BOOST.modes.includes(n0)) ? C.RUN_BOOST : null; // v700: só nos modos de RUN_BOOST.modes
+      const vIv = this.iv(e, "velocidade"), rb = RB ? 1 + Math.max(0, RB.at1 - RB.step * ((e.p && e.p.stats ? e.p.stats.velocidade : 16) - 1)) : 1; // v699 (Mickey): bônus de corrida pelo IV puro
+      const s = Math.min(C.RUN_MAX * (RB ? RB.capK || 1 : 1), (180 + (C.RUN_IV ? this.interp(C.RUN_IV, vIv) : 2 * vIv)) * 0.85 * rb * (this.pfx.run || 1)) * (1 - ((this.cfx[1 - e.team] || {}).slow || 0)); // v312: Espaço corre mais, sem passar do teto; v417: Sato Ren deixa o inimigo mais lento
       if (e.dribSlow && this.ball.owner !== e) e.dribSlow = false; const ds = e.dribSlow && !this.ifx(e).noDribSlow ? C.DRIB_SLOW : 1; /* v524: Chuteira Raio */ // v494 (Mickey): driblou = um pouco mais lento até soltar a bola (sem arrancada)
-      const BQ = e.spdB > this.time && (this.ps(e.team) || {}).boost; return this.skSpdK(e) /* v623 */ * s * C.RUN_SCALE * (BQ ? 1 + BQ.k : 1) * (e.burst > 0 && !e.dribSlow ? 1.25 : 1) * ds * (1 - (1 - C.ENERGY_RUN_MIN) * this.tired(e)); // v442: todos correm 15% menos (C.RUN_SCALE) · v225: sem stamina corre menos
+      const BQ = e.spdB > this.time && (this.ps(e.team) || {}).boost; const SDs = (e.sdB > this.time || e.recov > this.time) && this.sdyn(); /* v704: corre mais buscando o haxball ou voltando para a cobertura */ return this.skSpdK(e) /* v623 */ * s * C.RUN_SCALE * (SDs ? (e.recov > this.time ? SDs.recov.k : SDs.haxB.k) : 1) * (BQ ? 1 + BQ.k : 1) * (e.burst > 0 && !e.dribSlow ? 1.25 : 1) * ds * (1 - (1 - C.ENERGY_RUN_MIN) * this.tired(e)); // v442: todos correm 15% menos (C.RUN_SCALE) · v225: sem stamina corre menos
     }
     dir(t) { return t === 0 ? 1 : -1; }
     goalX(t) { return t === 0 ? W : 0; } // gol que o time t ataca
@@ -1054,7 +1056,7 @@ window.BL = window.BL || {};
 
     update(realDt) {
       if (this.paused) { this.shakeT = 0; return; } // v136: pausa tática congela a partida; v298: e a tela não fica tremendo parada
-      const xs = this.x1() ? C.X1.speed || 1 : 1; this.acc = Math.min((this.acc || 0) + Math.min(realDt, 0.1) * this.speed * xs * C.GAME_PACE * this.pace, 0.1 * this.speed * xs * this.pace); // v614: ritmo da partida (opts.pace) // v563 (Mickey): X1 15% mais rápido // v448 (Mickey): jogo 15% mais lento
+      const xs = this.modeSpd(); this.acc = Math.min((this.acc || 0) + Math.min(realDt, 0.1) * this.speed * xs * C.GAME_PACE * this.pace, 0.1 * this.speed * xs * this.pace); // v614: ritmo da partida (opts.pace) // v563 (Mickey): X1 15% mais rápido // v448 (Mickey): jogo 15% mais lento
       while (this.acc >= STEP && this.state !== "ended") { this.step(STEP); this.acc -= STEP; }
       this.fx = this.fx.filter((f) => (f.t -= realDt) > 0);
       this.stepParts(realDt);
@@ -1076,7 +1078,7 @@ window.BL = window.BL || {};
       }
       this.skStep(dt); // v623: habilidades
       if (!this.golden && !this.training && !this.scrimmage) { // treino é infinito: sem relógio, sem fim
-        this.clock += dt / C.GAME_PACE / this.pace / (this.x1() ? C.X1.speed || 1 : 1); // v563: no X1 o relógio não acelera junto (mesma duração) // v448: o relógio segue em segundos reais (o tempo continua com 60 s)
+        this.clock += dt / C.GAME_PACE / this.pace / this.modeSpd(); // v563: no X1 o relógio não acelera junto (mesma duração) // v448: o relógio segue em segundos reais (o tempo continua com 60 s)
         if (this.clock >= this.halfSec && this.waitPlay()) return this.endHalf();
       }
       { const k4 = this.trick4; if (k4 && (this.ball.owner || this.time - k4.T > 2.5)) { this.trick4 = null; const by = k4.by; // v588: chapéu/vaca só contam se ele pegar a bola
@@ -1173,7 +1175,7 @@ window.BL = window.BL || {};
 
     checkEnd() {
       if (this.training || this.scrimmage) return false;
-      const diff = Math.abs(this.score[0] - this.score[1]), mercy = !this.x1(); // v562 (Mickey): no X1 não tem misericórdia
+      const diff = Math.abs(this.score[0] - this.score[1]), mercy = !this.x1() || !!(C.X1 && C.X1.mercy); // v562 (Mickey): no X1 não tem misericórdia · v693 (Mickey): agora tem (C.X1.mercy)
       if (this.golden || (mercy && diff >= C.MERCY_DIFF)) { this.finish(mercy && diff >= C.MERCY_DIFF && !this.golden ? "mercy" : this.golden ? "golden" : "time"); return true; }
       return false;
     }
@@ -1267,7 +1269,7 @@ window.BL = window.BL || {};
         { const K = this.combo && this.combo[t]; if (K && K.st === "run" && e.think > C.COMBO.touch) e.think = C.COMBO.touch; } // v600: combo de primeira
         { const X1q = this.x1(), TRq = X1q && X1q.trick; if (TRq && TRq.react && !(e.trickCd > 0) && (e.fol ?? 100) > TRq.minFol) { const oq = this.field(1 - t).find((q) => !q.gk && (q.x - e.x) * this.dir(t) > 10 && hyp(q.x - e.x, q.y - e.y) < TRq.near); if (oq && e.think > TRq.react) e.think = TRq.react; } } // v564: marcador chegou, ele já reage com o truque
         if (hyp(this.goalX(t) - e.x, H / 2 - e.y) < C.SHOT_CLOSE) e.think = 0; // v213: na cara do gol, decide (e finaliza) já
-        if (e.think <= 0) { e.think = U.rand(0.22, 0.42) * this.actF(e) * ((this.ps(t) || {}).think || 1); /* v597: plays setadas = mais devagar */ this.decide(e); if (b.owner !== e) return; } // v225: velocidade decide mais rápido
+        if (e.think <= 0) { e.think = U.rand(0.22, 0.42) * this.actF(e) * ((this.ps(t) || {}).think || 1) * ((this.sdyn() || {}).think || 1); /* v703 */ /* v597: plays setadas = mais devagar */ this.decide(e); if (b.owner !== e) return; } // v225: velocidade decide mais rápido
         tx = e.tx; ty = e.ty;
         sp *= 0.7 + 0.01 * Math.min(31, this.iv(e, "drible")); // v575: teto 31 (o nível relativo fazia Nv 1000 conduzir 4× mais rápido)
         if (this.folLow(e)) sp *= C.X1.fol.lowRun; // v561: sem fôlego conduz mais devagar
@@ -1612,6 +1614,10 @@ window.BL = window.BL || {};
         const run = hyp(e.vx || 0, e.vy || 0) > X1.fol.runR * this.runSpeed(e); // v562 (Mickey): só gasta correndo ou fazendo ação; andando recupera devagar, mesmo com a bola
         e.fol = U.clamp((e.fol ?? 100) + (run ? -X1.fol.run : X1.fol.rec) * dt, 0, 100);
       }
+      { const WG = (this.sdyn() || {}).wing; if (WG && WG.mates && b.owner && b.owner.team === t && b.owner !== e && !b.owner.gk && !(b.pass && b.pass.to === e) && e.mode !== "runTo" && e.mode !== "combo") { const sd = b.owner.wingRun ? b.owner.wingSd || 1 : (e.slot % 2 ? -1 : 1); if (Math.random() < 1) ty = U.clamp(ty + (H / 2 + sd * (H / 2 - WG.edge - 20) - ty) * WG.mates, 30, H - 30); } } // v704b (Mickey): com a bola, os companheiros abrem para a ala
+      if (e.recov) { const RC = (this.sdyn() || {}).recov; if (!RC || this.time > e.recov || b.owner === e || (b.owner && b.owner.team === t) || (b.pass && b.pass.to === e)) e.recov = 0; else { // v704 (Mickey): levou o tackle, levanta e corre para ficar entre a bola e o próprio gol; só depois volta a dar bote
+          const og = this.ownGoalX(t), ux = og - b.x, uy = H / 2 - b.y, L = hyp(ux, uy) || 1, g = Math.min(RC.gap, L * 0.5), qx = b.x + (ux / L) * g, qy = b.y + (uy / L) * g;
+          if (hyp(qx - e.x, qy - e.y) < RC.near) e.recov = 0; else { tx = U.clamp(qx, 30, W - 30); ty = U.clamp(qy, 30, H - 30); e.mode = "recov"; } } }
       e.goalTx = tx; e.goalTy = ty;
       const dx = tx - e.x, dy = ty - e.y, dist = hyp(dx, dy);
       if (dist > 2) {
@@ -1664,6 +1670,7 @@ window.BL = window.BL || {};
       const x1Shot = !this.x1() || this.x1ShotOk(e, distGoal); // v563 (Mickey): no X1 só chuta com 3 stacks e perto do gol
       if (distGoal < C.SHOT_CLOSE && x1Shot) return this.shoot(e, distGoal, distO); // v213: na cara do gol não conduz mais: chuta
       { const X1g = this.x1(); if (X1g && X1g.shotGo && x1Shot && Math.random() < X1g.shotGo) return this.shoot(e, distGoal, distO); } // v564: no X1, com 3 stacks e perto do gol, quase sempre já chuta
+      { const WG = (this.sdyn() || {}).wing; if (WG && !this.training && (e.heldT || 0) < 0.3 && e.wingAt !== e.recoverT + "|" + e.recvT) { e.wingAt = e.recoverT + "|" + e.recvT; e.wingRun = Math.random() < WG.p; e.wingSd = Math.abs(e.y - H / 2) > 30 ? Math.sign(e.y - H / 2) : Math.random() < 0.5 ? -1 : 1; } } // v704b: sorteia ala ou meio a cada posse
       const opts = [];
       const chute = this.iv(e, "chute"), passe = this.iv(e, "passe"), drible = this.iv(e, "drible");
       e.ginga = false;
@@ -1673,12 +1680,13 @@ window.BL = window.BL || {};
       const ux = (gx - e.x) / distGoal, uy = (gy - e.y) / distGoal;
       const clear = !this.training && !opps.some((x) => { const along = (x.x - e.x) * ux + (x.y - e.y) * uy; return along > -15 && along < distGoal && Math.abs((x.x - e.x) * uy - (x.y - e.y) * ux) < 110; });
       const st = this.styles[t];
-      const range = (this.noAtk[t] || this.training ? 420 : st ? st.range : 330) + C.IVX.shotRange * Math.min(1, this.q(e, "chute")); // v225: chute bom arrisca de mais longe. Oblivion arrisca de mais longe: é a chance que ela tem; no treino, chute de todas as distâncias
+      const SD = this.sdyn(), range = (this.noAtk[t] || this.training ? 420 : st ? st.range : 330) + C.IVX.shotRange * Math.min(1, this.q(e, "chute")) + (SD ? SD.range : 0); /* v703: 2×2/3×3 chuta de mais longe */ // v225: chute bom arrisca de mais longe. Oblivion arrisca de mais longe: é a chance que ela tem; no treino, chute de todas as distâncias
       if (distGoal < range) {
         let w = ((range - distGoal) / range) * (0.5 + chute / 31);
         if (distGoal < 180) w *= 2.2;
         if (blocked && distO < 55) w *= 0.4;
         if (clear) w *= distGoal < 250 ? 3 : 0.4; // livre: chega mais perto e chuta
+        if (SD) w *= SD.shot; // v703
         if (st && st.shot) w *= st.shot; // estilo que finaliza mais (Toque de bola chega tocando e chuta)
         opts.push({ v: "shoot", w });
       }
@@ -1705,19 +1713,21 @@ window.BL = window.BL || {};
       const deep = !this.isAtk(e) && (e.x - W / 2) * d > 40; // defensor que já passou do meio
       const pressed = this.noAtk[t] && distO < 110; // Oblivion pressionada: solta a bola em vez de conduzir
       const attackHalf = this.noAtk[t] && (e.x - W / 2) * d > 0; // Oblivion já no campo deles: busca o gol, não recua
-      opts.push({ v: "carry", w: (0.9 + drible / 25) * (deep ? 0.25 : 1) * (pressed ? 0.45 : 1) * (clear ? 4 : 1) * (st ? st.drib : 1) });
+      opts.push({ v: "carry", w: (0.9 + drible / 25) * (deep ? 0.25 : 1) * (pressed ? 0.45 : 1) * (clear ? 4 : 1) * (st ? st.drib : 1) * (SD ? SD.drib : 1) * (SD && SD.wing && e.wingRun && distGoal > SD.wing.cut && Math.abs(e.y - H / 2) < H / 2 - SD.wing.edge - 40 ? SD.wing.go : 1) }); // v704b: indo para a ala, conduz até lá
+      const wingGoing = SD && SD.wing && e.wingRun && distGoal > SD.wing.cut && Math.abs(e.y - H / 2) < H / 2 - SD.wing.edge - 40 && distO > 60; // v704b: a caminho da ala só toca se apertado
       // tabela na parede: jogada de efeito, não a primeira reação. Só depois de conduzir um pouco,
       // perto da lateral, com intervalo entre uma e outra, e bem mais provável quando está marcado
       const nearWall = Math.min(e.y, H - e.y) < 170;
-      if ((e.heldT || 0) > (this.training ? 0.3 : 0.6) && !(e.wallCd > 0) && !clear) {
+      if ((e.heldT || 0) > (this.training ? 0.3 : (this.sdyn() || {}).wallHeld || 0.6) && !(e.wallCd > 0) && !clear) {
         const HBk = !this.training && C.HAXBALL, endZ = HBk && Math.abs(gx - e.x) < HBk.back.x && Math.abs(e.y - H / 2) > GH / 2 + HBk.back.y; // v492 (Mickey): haxball perto da parede, backboard mais vezes
         const w = (blocked ? 0.5 + passe / 35 : this.training ? 0.45 : 0.1) * (HBk ? (endZ ? HBk.back.w : this.interp(HBk.wallK, Math.min(e.y, H - e.y))) : nearWall ? 1 : 0.5); // treino: treina a tabela também
-        opts.push({ v: "wall", w });
+        opts.push({ v: "wall", w: w * ((this.sdyn() || {}).wall || 1) }); // v704: 2×2/3×3 bem mais haxball
       }
-      const pz = this.training ? 0.8 / Math.max(1, this.field(t).length - 1) : this.noAtk[t] ? (pressed ? 2.4 : 1.5) : st ? st.pass : 1; // treino: treinar troca de passes // time sem atacantes (Oblivion): sai jogando no toque
+      const pz = this.training ? 0.8 / Math.max(1, this.field(t).length - 1) : (this.noAtk[t] ? (pressed ? 2.4 : 1.5) : st ? st.pass : 1) * ((this.sdyn() || {}).pass || 1); /* v704 */ // treino: treinar troca de passes // time sem atacantes (Oblivion): sai jogando no toque
       const vis = this.ifx(e).freePass ? this.field(t).filter((m) => m !== e && m.stun <= 0).reduce((a, m) => (!a || this.openness(m) > this.openness(a) ? m : a), null) : null; // v524: Camisa Visão de Jogo
       this.field(t).forEach((m) => { if (m !== e && m.stun <= 0) opts.push({ v: { pass: m }, w: (m === vis ? 1 + this.ifx(e).freePass : 1) * pz * (0.7 + passe / 25) * ((m.x - e.x) * d > 0 ? 1.5 : attackHalf ? 0.2 : 0.6) * (this.openness(m) > 70 ? 1.2 : 0.5) * (!this.isAtk(e) && this.isAtk(m) ? 1.6 : 1) * (this.laneBlocked(e, m) ? 0.2 : 1) }); });
-      if (clear) opts.forEach((op) => { if (op.v.pass) op.w *= (op.v.pass.x - e.x) * d > 80 ? 0.15 : 0.02; }); // livre: só toca se for para alguém bem à frente
+      if (clear) opts.forEach((op) => { if (op.v.pass) op.w *= (op.v.pass.x - e.x) * d > 80 ? 0.15 : 0.02; });
+      if (wingGoing) opts.forEach((op) => { if (op.v && op.v.pass) op.w *= SD.wing.passK; }); // livre: só toca se for para alguém bem à frente
       if (!this.training && blocked && !clear && distGoal > 420 && distO < 90 && !this.gkLock[t]) opts.push({ v: "back", w: 0.45 + passe / 40 }); // v603: goleiro que já soltou a bola não recebe de novo
       // Oblivion: lançamento longo para quem está esperando lá na frente (o jeito de um time todo defensivo chegar ao gol)
       // Muralha: do próprio campo, lançamento longo para quem está lá na frente (contra-ataque)
@@ -1846,7 +1856,7 @@ window.BL = window.BL || {};
       }
       const K = C.CARRY_FREE;
       if (K && !this.training) {
-        const hold = (e.alaOf ? K.ofMin : K.min) * (0.7 + 0.6 * ((e.seed ?? 1) % 1));
+        const hold = (e.alaOf ? K.ofMin : K.min) * (0.7 + 0.6 * ((e.seed ?? 1) % 1)) * ((this.sdyn() || {}).holdK || 1); // v704b: 2×2/3×3 segura menos e toca mais
         if (!chainGo && (e.heldT || 0) < hold && distO > K.press && !(RM && this.time - (e.recvT ?? -9) < RM.oneT && this.shotEff(e) <= RM.oneEff)) opts.forEach((op) => { if (op.v === "carry") op.w *= K.carry; else if (op.v === "wall") op.w *= K.wall; else if (op.v === "back" || (op.v && op.v.pass)) op.w *= K.pass; });
         opts.forEach((op) => { if (op.v && op.v.pass && op.v.pass.alaOf && !e.alaOf) op.w *= K.toOf; });
       }
@@ -1858,13 +1868,13 @@ window.BL = window.BL || {};
       if (HB && !this.training) for (const m of this.field(t)) {
         if (m === e || m.gk || m.stun > 0) continue; const dm = hyp(m.x - e.x, m.y - e.y);
         const endZ = Math.abs(gx - e.x) < HB.back.x && Math.abs(gx - m.x) < HB.back.x; // v496 (Mickey): backboard = quase um chute na parede do fundo para o aliado pegar, só de perto
-        const hq = this.ps(t), hFree = hq && hq.haxShort && dm < hq.haxShort.L; // v603: bola no pé faz haxball curto mesmo com a linha aberta
+        const hq = this.ps(t), SDh = this.sdyn(), hFree = (hq && hq.haxShort && dm < hq.haxShort.L) || (SDh && dm < SDh.haxFree), hLong = SDh && SDh.haxLong && dm > SDh.haxLong[0] ? SDh.haxLong[1] : 1; // v704b: haxball longo mais vezes // v704: 2×2/3×3 faz haxball mesmo com a linha aberta // v603: bola no pé faz haxball curto mesmo com a linha aberta
         if (dm < HB.pass.min || dm > HB.pass.max || (!endZ && !hFree && !this.laneBlocked(e, m))) continue;
         const tx = U.clamp(m.x + (endZ ? 0 : d * 40), 40, W - 40), ty = U.clamp(m.y, 40, H - 40);
-        const walls = endZ ? ["end"] : [(e.y + ty) / 2 < H / 2 ? "top" : "bot"];
+        const walls = endZ ? ["end"] : SDh ? ["top", "bot"] : [(e.y + ty) / 2 < H / 2 ? "top" : "bot"]; // v704b: 2×2/3×3 tenta as duas paredes
         for (const wl of walls) { const a = this.haxAim(e, tx, ty, wl); if (!a) continue;
           if (this.laneBlocked(e, { x: a.bx, y: a.by }) || this.laneBlocked({ x: a.bx, y: a.by, team: t }, { x: tx, y: ty })) continue;
-          opts.push({ v: { pass: m, hax: { tx, ty, wall: wl } }, w: HB.pass.w * (0.4 + passe / 31) * (wl === "end" ? HB.back.w * ((hq && hq.back) || 1) : this.interp(HB.wallK, wl === "top" ? e.y : H - e.y)) }); } // v492: perto da parede mais, no meio raro
+          opts.push({ v: { pass: m, hax: { tx, ty, wall: wl } }, w: (SDh ? SDh.hax * hLong : 1) * HB.pass.w * (0.4 + passe / 31) * (wl === "end" ? HB.back.w * ((hq && hq.back) || 1) : this.interp(HB.wallK, wl === "top" ? e.y : H - e.y)) }); } // v492: perto da parede mais, no meio raro
       }
       // v500 (Mickey): o Pivô que acabou de driblar (mais lento) olha o Ala Of: bem posicionado (livre, sem linha fechada, não atrás) = toca; senão pesa se vale o próximo drible, que já é mais difícil
       const PD = C.PIVO_DRIB;
@@ -1957,6 +1967,8 @@ window.BL = window.BL || {};
       let ty = this.training ? U.rand(70, H - 70) : gy + U.rand(-80, 80); // treino: conduz para lugares variados antes de passar/chutar
       if (blocked && !clear) ty = e.y + (e.y > o.y ? 1 : -1) * U.rand(70, 140);
       if (clear || freeRun) ty = e.y + (gy - e.y) * 0.5 + U.rand(-30, 30); // livre: vai reto em direção ao gol (v491: também livre só na frente)
+      { const WG = (this.sdyn() || {}).wing; if (WG && !this.training) { // v704b (Mickey): com a bola, metade das posses vai pela ala (decidido no decide)
+        if (e.wingRun && distGoal > WG.cut) ty = H / 2 + e.wingSd * (H / 2 - WG.edge); } }
       if (this.duelMode && blocked && !clear && distO < 150) {
         // v188 · 1×1: ginga na frente do marcador (corta para um lado, depois para o outro) antes do bote
         e.ginga = true; e.zig = -(e.zig || 1);
@@ -1969,7 +1981,7 @@ window.BL = window.BL || {};
       else if (C.LATERAL && e.alaOf && !this.training && !clear && (e.x - this.ownGoalX(t)) * d > W * C.LATERAL.from && Math.abs(this.goalX(t) - e.x) > C.LATERAL.minX && Math.random() < C.LATERAL.of) { const sd = Math.abs(e.y - H / 2) > 20 ? Math.sign(e.y - H / 2) : ((this.scheme && this.scheme[t]) || { side: 1 }).side; ty = H / 2 + sd * C.POS_AI.wingY; } // v499 (Mickey): jogo mais lateralizado: o Ala Of com a bola volta para a ala dele
       else if (this.wingRun(e)) ty = H / 2 + Math.sign(e.y - H / 2) * C.POS_AI.wingY; // v452: Ala Of na ala conduz pela lateral até a linha de fundo para cruzar
       e.tx = U.clamp(e.x + d * 140, 30, W - 30); e.ty = U.clamp(ty, 30, H - 30);
-      if (this.x1() && o && !this.x1ShotOk(e, hyp(gx - e.x, gy - e.y))) { // v563 (Mickey): sem stack para chutar, vai para cima do marcador (quer driblar)
+      if (this.x1() && o && !this.golden && ((this.stack || [])[t] || 0) < C.X1.style.shotMin) { // v693 (Mickey): já driblou, segue para o gol e chuta; não volta para driblar de novo só por estar longe · v563 (Mickey): sem stack para chutar, vai para cima do marcador (quer driblar)
         const near = Math.abs(gx - e.x) < C.X1.style.turnX; e.tx = U.clamp(near ? o.x - d * 40 : o.x, 30, W - 30); e.ty = U.clamp(o.y + (e.y > o.y ? 25 : -25), 30, H - 30); }
     }
     bladeSeek(e) { const BD = C.REPERT && C.REPERT.blade, P = this.rplays && this.rplays[e.team]; return !!(BD && BD.seek && P && e.alaOf && (P.used.blade || 0) < BD.max && Math.abs(e.y - H / 2) > 60 && Math.abs(this.goalX(e.team) - e.x) < W * 0.55); } // v498 (Mickey): com blade sobrando, o Ala Of procura a linha de fundo pela ala para puxar o blade
@@ -2416,6 +2428,7 @@ window.BL = window.BL || {};
       const sp = (v * (sh ? sh.sp : 1)) / C.BALL_SCALE; if (sh && err != null) err *= sh.err;
       this.kickTo(e, a.mx, a.my, sp, err ?? (HB.err * (sh ? sh.err : 1) - this.iv(e, "passe") * HB.errIv) * (this.x1() && C.X1.hax ? C.X1.hax.errK : 1) /* v567: no X1 o haxball sai mais fácil */, { kind: "pass", to, lob: !!lob, hax: true });
       if (this.ball.pass) { this.ball.pass.spot = { x: tx, y: ty }; this.ball.pass.hax = wall === "end" ? "end" : "side"; }
+      { const SH = this.sdyn(); if (SH && SH.haxB && to) to.sdB = this.time + SH.haxB.t; } // v704 (Mickey): fez o haxball, ganha velocidade para completar
       this.onEvent("log", { team: e.team, text: to === e ? `${e.p.short} fez o ${wall === "end" ? "backboard" : "haxball"} e passou do marcador` : `${e.p.short} achou ${to.p.short} de ${wall === "end" ? "backboard" : "haxball"}` });
       return true;
     }
@@ -2609,7 +2622,7 @@ window.BL = window.BL || {};
         return;
       }
       b.owner = g; b.shot = null; b.pass = null; b.vx = b.vy = 0; g.possT = this.time; // v603: 3 s de posse
-      g.hold = 1.8 - (g.gkStats.sb - 15) * 0.08 + (C.GK_POSS ? C.GK_POSS.hold : 0); // v604: segura um pouco mais
+      g.hold = 1.8 - (g.gkStats.sb - 15) * 0.08 + (C.GK_POSS ? C.GK_POSS.hold : 0); g.hold *= (this.sdyn() || {}).gkHold || 1; // v703: 2×2/3×3 repõe mais rápido · v604: segura um pouco mais
       this.comboStart(g.team); // v600
       this.restart = { team: g.team, until: Infinity }; // tiro de meta: vale enquanto o goleiro segura e logo depois da reposição
       if (wasShot) {
@@ -2717,7 +2730,7 @@ window.BL = window.BL || {};
       // disputa de bola: marcador encosta no portador
       const c = b.owner;
       for (const e of this.field(1 - c.team)) {
-        if (e.stun > 0 || e.duelCd > 0 || c.duelCd > 0 || e.slide > 0) continue;
+        if (e.stun > 0 || e.duelCd > 0 || c.duelCd > 0 || e.slide > 0 || e.recov > this.time) continue; // v704: voltando para a cobertura não dá bote
         if (hyp(c.x - e.x, c.y - e.y) > c.r + e.r + 6) continue;
         this.duel(c, e);
         return;
@@ -2748,17 +2761,20 @@ window.BL = window.BL || {};
     }
     // v494 · chance de d20 + m vencer d20 (empate fica com quem defende), com m fracionário interpolado
     blockKeep(o) { if (!C.BLOCK || !(Math.random() < (C.BLOCK.keep || 0))) return; const b = this.ball; b.owner = o; b.vx = b.vy = 0; b.ignore = null; b.shot = null; b.pass = null; o.heldT = 0; o.recoverT = this.time; o.think = 0.2 * this.actF(o); o.mode = "carry"; } // v550: o bloqueio às vezes já fica com a bola (sem rebote para outro chute)
+    sdyn() { if (this._sd === undefined) { const n = this.field(0).length; this._sd = (!C.SMALL_DYN || this.training || this.scrimmage || this.x1() || n !== this.field(1).length) ? null : C.SMALL_DYN[n] || null; } return this._sd; } // v703: ritmo do 2×2 e 3×3 (C.SMALL_DYN)
+    fitK(e) { const F = C.SMALL_FIT; if (!F || e.gk || !this.sdyn() || !e.p) return 1; const nat = e.p.position === "atacante" || e.p.position === "alaof"; return (e.role === "atk") === nat ? 1 : F.miss; } // v703 (Mickey): fora do setor natural do personagem rende menos (2×2 e 3×3)
+    modeSpd() { if (this.x1()) return C.X1.speed || 1; if (this.training || this.scrimmage) return 1; const n = this.field(0).length; return (C.MODE_SPEED && n === this.field(1).length && C.MODE_SPEED[n]) || 1; } // v698 (Mickey): 2×2 e 3×3 mais rápidos (o relógio compensa, a duração não muda)
     x1() { return C.X1 && !this.training && !this.scrimmage && this.field(0).length === 1 && this.field(1).length === 1 ? C.X1 : null; } // v561: só no 1×1
     fol(e, v) { if (e.gk || !this.x1()) return; e.fol = U.clamp((e.fol ?? 100) - v, 0, 100); } // v561: gasta fôlego temporário
     addStack(t, n) { const X = this.x1(); if (!X) return; this.stack = this.stack || [0, 0]; this.stack[t] = Math.min(X.style.max, (this.stack[t] || 0) + n); } // v562 (Mickey, FIFA Street): estilo soma stacks
     goalValue(t) { const X = this.x1(), k = this.stack ? this.stack[t] || 0 : 0; return X && !this.golden ? Math.min(X.style.maxGoal, 1 + Math.floor(k / X.style.per)) : 1; } // v565 (Mickey): no gol de ouro o gol é normal (vale 1)
     x1Flair(e) { const X = this.x1(), F = X && X.flair; if (!F) return; if (Math.random() < F.k * (this.iv(e, "drible") / 31) ** F.pow) { e.flairT = this.time + U.rand(F.t[0], F.t[1]); this.fx.push({ kind: "text", x: e.x, y: e.y - 52, text: "VEM!", t: 0.8, color: "#5fd4ff" }); } } // v568 (Mickey): quem tem muito drible joga folgado: depois do drible volta para cima do marcador
     x1Knock(c, e) { // v567 (Mickey) · X1: o desarme espirra a bola para o lado oposto de onde veio o bote; quem tomou fica no chão
-      const K = this.x1() ? C.X1.tackle : this.rplays && this.rplays[c.team] && C.TACKLE4; if (!K) return false; /* v596 (Mickey): no 4×4 também */ const b = this.ball;
+      const SDk = this.sdyn(), K = this.x1() ? C.X1.tackle : (this.rplays && this.rplays[c.team] && C.TACKLE4) || (SDk && SDk.tackle); if (!K) return false; /* v704: 2×2/3×3 também espirra */ /* v596 (Mickey): no 4×4 também */ const b = this.ball;
       let ax = b.x - e.x, ay = b.y - e.y; const L = hyp(ax, ay) || 1; ax /= L; ay /= L;
       const a = Math.atan2(ay, ax) + U.rand(-K.spread, K.spread), sp = U.rand(K.speed[0], K.speed[1]);
       b.owner = null; b.shot = null; b.pass = null; b.vx = Math.cos(a) * sp; b.vy = Math.sin(a) * sp; b.ignore = c; b.ignoreT = K.stun; if (this.gkLock) this.gkLock[c.team] = false; /* v603: o adversário tocou */
-      c.stun = K.stun ?? (C.STEAL_LOST ? C.STEAL_LOST.stun : 0.5) + this.st4(); c.mode = "idle"; e.stun = Math.max(e.stun, K.self); return true;
+      c.stun = K.stun ?? (C.STEAL_LOST ? C.STEAL_LOST.stun : 0.5) + this.st4(); c.mode = "idle"; e.stun = Math.max(e.stun, K.self); if (SDk && SDk.recov && !this.x1()) c.recov = this.time + c.stun + SDk.recov.t; /* v704: levanta e volta para a cobertura antes do bote */ return true;
     }
     x1ShotOk(e, distGoal) { const X = this.x1(); return !X || ((this.stack ? this.stack[e.team] || 0 : 0) >= (this.golden ? 0 : X.style.shotMin) && distGoal < X.style.shotDist); } // v565 (Mickey): no gol de ouro do X1 qualquer chute vale, sem stack
     folLow(e) { const X = this.x1(); return !!X && !e.gk && (e.fol ?? 100) < X.fol.low; }
@@ -2894,7 +2910,7 @@ window.BL = window.BL || {};
         p *= (1 + (A.dribK || 0)) * (1 + (A.chain || 0) * Math.min(A.chainMax || 0, this.dribChainN(c))) * (1 - (D.shadow || 0)) * this.captK(c.team); // Sangue Frio, Ritmo, Sombra, Capitão
         p = U.clamp(1 - (1 - p) * (1 + (D.tackle || 0) + ((this.tfx[e.team] || {}).tackle || 0)) * this.captK(e.team), 0.02, 0.98); } // Teimosa, Capitão // v312: na Street o bote erra mais · v488: dribles seguidos ficam mais difíceis
       p = this.skDribP(c, p); // v623: Drible do Monstro
-      c.duelCd = e.duelCd = 0.9; this.fol(c, C.X1 ? C.X1.fol.drib : 0); // v561: driblar gasta fôlego (X1)
+      c.duelCd = e.duelCd = 0.9 * ((this.sdyn() || {}).duelCd || 1); this.fol(c, C.X1 ? C.X1.fol.drib : 0); /* v703 */ // v561: driblar gasta fôlego (X1)
       this.drain(c, C.ENERGY_DRAIN_ACTION); this.drain(e, C.ENERGY_DRAIN_ACTION + C.ENERGY_DRAIN_TACKLE); // v225: bote com custo
       if (this.noAtk[e.team] && (C.BLOCK.duelGap === false || this.blockOk()) && Math.random() >= p && Math.random() < 0.6) {
         // time sem atacantes: na maioria das vezes o bote só segura o portador (às vezes ainda rouba)
@@ -2915,7 +2931,7 @@ window.BL = window.BL || {};
       }
       if (won) {
         if (D.thorn && !this.training && !this.scrimmage) c.energy = Math.max(0, c.energy - D.thorn); // v524: Caneleira Espinho
-        c.dribN = this.dribChainN(c) + 1; c.burst = 0.7; if (C.DRIB_SLOW) c.dribSlow = true; e.stun = C.TACKLE_MISS_STUN + this.st4(); c.dribT = this.time; c.duelCd = C.DRIB_GRACE; // v443 (Mickey): os outros marcadores já podem dar o bote logo depois do drible // v204: giro do sprite no drible
+        c.dribN = this.dribChainN(c) + 1; c.burst = 0.7; if (C.DRIB_SLOW) c.dribSlow = true; e.stun = (C.TACKLE_MISS_STUN + this.st4()) * ((this.sdyn() || {}).stun || 1); c.dribT = this.time; c.duelCd = C.DRIB_GRACE; // v443 (Mickey): os outros marcadores já podem dar o bote logo depois do drible // v204: giro do sprite no drible
         e.stun *= (1 + (this.ifx(c).dribStun || 0)) * (1 - (D.glue || 0)); // v524: Chuteira Afiada / Caneleira Gruda
         this.drain(e, C.TACKLE_MISS_DRAIN); c.think = Math.min(c.think, 0.3 - 0.25 * Math.min(1, this.q(c, "drible")) ** 2); // v225: bote errado cansa e deixa no chão; Drible alto já decide o próximo lance
         const ang = Math.atan2(e.y - c.y, e.x - c.x);
@@ -2936,7 +2952,7 @@ window.BL = window.BL || {};
         this.shake(5, 0.22);
         this.chemEv(c, "drib"); this.onEvent("dribble", { team: c.team, name: c.p.short, vs: e.p.short }); this.x1Flair(c); if (this.x1() && C.X1.boost) { c.burst = Math.max(c.burst, C.X1.boost); c.dribSlow = false; } // v570: boost depois do drible
       } else {
-        c.stun = (C.STEAL_LOST ? C.STEAL_LOST.stun : 0.5) + this.st4(); if (C.STEAL_LOST) c.duelCd = Math.max(c.duelCd, C.STEAL_LOST.noTackle); e.tackT = this.time; // v204: bote do sprite · v550 (Mickey): quem perdeu a bola fica 1 s sem tentar roubo
+        c.stun = ((C.STEAL_LOST ? C.STEAL_LOST.stun : 0.5) + this.st4()) * ((this.sdyn() || {}).stun || 1); if (C.STEAL_LOST) c.duelCd = Math.max(c.duelCd, C.STEAL_LOST.noTackle); e.tackT = this.time; // v204: bote do sprite · v550 (Mickey): quem perdeu a bola fica 1 s sem tentar roubo
         if (!this.x1Knock(c, e)) { this.ball.owner = e; e.heldT = 0; e.recoverT = this.time; e.think = 0.15 * this.actF(e); e.mode = "carry"; e.tx = e.x + this.dir(e.team) * 100; e.ty = e.y; }
         if (crit < 0) c.stun *= C.DICE.critStun || 1; // v559: roubo limpo
         this.fx.push({ kind: "text", x: e.x, y: e.y - 30, text: crit < 0 ? "ROUBO LIMPO!" : "ROUBOU!", t: 0.9, color: crit < 0 ? "#ffd23f" : "#c0081c" });
