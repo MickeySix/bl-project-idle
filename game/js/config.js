@@ -3,7 +3,7 @@
 window.BL = window.BL || {};
 
 // Versão do jogo: sobe a cada publicação. O index.html usa o mesmo número (?v=) para o navegador não usar arquivos velhos.
-BL.BUILD = "713";
+BL.BUILD = "714";
 // v336 · link do Discord oficial (aba Comunidade). Vazio = botão avisa "em breve"
 BL.DISCORD_URL = "";
 

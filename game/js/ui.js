@@ -2188,7 +2188,7 @@
       sd ? ["Habilidade", `Seu time já tem 1 habilidade no nível 1: ${sd.name}. Ela fica em Habilidades, no menu de baixo. Coloque em um dos 4 espaços para o time usar na partida. As outras abrem com o nível da conta e vencendo Bosses.`] : null,
       ["Missões", "O botão Missões, à direita, mostra o próximo objetivo e dá prêmios."],
       ["Energia", "Jogador cansado joga pior. Água e Gatorade recuperam a energia e ficam na Mochila."],
-      ["Beta", "O progresso fica salvo só neste navegador. Em Configurações, aba Conta, dá para exportar o save."],
+      ["Beta", G.online ? "O progresso fica salvo no servidor e abre em qualquer aparelho com o mesmo usuário e senha." : "O progresso fica salvo só neste navegador. Em Configurações, aba Conta, dá para exportar o save."],
     ].filter(Boolean).map(([k, t]) => `<li><b>${k}</b><span>${t}</span></li>`).join("");
     openModal("Como funciona", `<div class="mdn itr"><p class="mdn-big">Bem-vindo ao <b>BL Project</b></p><p class="mdn-p">Sua primeira partida já começou. O que vale saber antes de explorar:</p><ul class="mdn-list">${rows}</ul><div class="mdn-btns"><button type="button" class="btn btn-hot" data-mdn-stay>Entendi</button></div></div>`);
   }
