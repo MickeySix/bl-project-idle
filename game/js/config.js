@@ -3,7 +3,7 @@
 window.BL = window.BL || {};
 
 // Versão do jogo: sobe a cada publicação. O index.html usa o mesmo número (?v=) para o navegador não usar arquivos velhos.
-BL.BUILD = "710";
+BL.BUILD = "713";
 // v336 · link do Discord oficial (aba Comunidade). Vazio = botão avisa "em breve"
 BL.DISCORD_URL = "";
 
@@ -1256,6 +1256,9 @@ BL.CONFIG = {
   HEAL_ONLY_HALFTIME: true, // v690 (Mickey): Água, Gatorade e as outras bebidas só no intervalo (Vestiário); a cura automática do VIP continua durante a partida
   STEAL_SUSPENSE_MS: 2600, // v690 (Mickey): tempo do contrato tremendo antes de mostrar se roubou
   STEAL_GIFT: { id: "pr-basica", n: 5 }, // v690 (Mickey): as +200 da v680 agora chegam pelo Correio de boas-vindas, junto com 10 Águas
+  // v712 (Mickey): conta online no Supabase (js/online.js). on:false volta tudo para as contas locais. A chave é a pública (anon), pode ficar no código.
+  // A chance de Diamante na vitória das contas online é sorteada no servidor (funções em /mnt/project-files/server); mudar DIAMOND_DROP aqui não muda lá.
+  ONLINE: { on: true, url: "https://jzlvxvkqriojxwtzbqyu.supabase.co", key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6bHZ4dmtxcmlvanh3dHpicXl1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ1MjU5NDQsImV4cCI6MjExMDEwMTk0NH0.XV9UQ0ZIxf-oufVNj015KbvpuuEuWA09APQ0gKw4hDk", saveGapMs: 3000, devUsers: [] },
   DIAMOND_DROP: { win: 0.002, n: 1 }, // v687 (Mickey): 0,5% → 0,2% (1 em 500 vitórias). v680: chance mínima de 1 Diamante a cada vitória (qualquer fase); única fonte grátis
   // // v526: Propostas Básicas de presente (conta nova e saves antigos, uma vez), já equipadas
   // xp: usa na Mochila num jogador escolhido (só o jogador ganha, a conta não)
@@ -1332,7 +1335,7 @@ BL.CONFIG = {
     // v533 (Mickey): Master Contract (ex-Contrato Blue Lock) saiu da Loja de Diamantes
     // v511 (Mickey): itens do treinador saíram da Loja de Diamantes (seguem nos baús)
     // v510 (Mickey): itens de XP (Vídeo, Treino extra, Camp) saíram da Loja de Diamantes
-    { id: "mod-cura", cat: "permanentes", name: "Módulo de Descanso", perm: "healModule", ban: "img/loja/modulo-descanso-card.png", tier: "epico", stars: 3, dia: 250, desc: "Permanente: energia cheia em todo intervalo." }, // v509 (Mickey) · v521: card no estilo da arte do Mickey (Épico, 3 estrelas, ∞)
+    { id: "mod-cura", cat: "permanentes", name: "Módulo de Descanso", perm: "healModule", ban: "img/loja/modulo-descanso-banner.jpg", tier: "epico", stars: 3, dia: 250, desc: "Permanente: energia cheia em todo intervalo." }, // v509 (Mickey) · v521: card no estilo da arte do Mickey (Épico, 3 estrelas, ∞) · v711: arte nova do Mickey em alta (banco com lua)
     { id: "gamepass", cat: "vip", name: "Game Pass", gp: true, icon: "img/loja/gamepass.jpg", dia: 100, desc: "Trilha Premium da temporada: prêmios melhores em todos os 200 níveis e as auras exclusivas dos níveis 100 e 200." } /* v628: abre a tela do Game Pass (js/gamepass.js); dia = C.GAMEPASS.price */, // v513 (Mickey): VIP 30 dias saiu; aqui só o Game Pass, que ainda será feito
   ],
   GYMS: { key: "blpi_gyms", wait: 15, list: [ // v622 (Mickey): Líderes · v623: wait = minutos de espera de quem perdeu um desafio (quem vence fica com o ginásio, sem timer); npcLv/npcRar = time do líder NPC inicial
