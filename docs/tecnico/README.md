@@ -1,6 +1,6 @@
 # BL PROJECT IDLE · Documentação técnica
 
-Versão documentada: **v710** (`BL.BUILD` em `game/js/config.js`). Jogo publicado em https://claude.ai/artifact/4LFiip85peJuMZmXMS2nSS.
+Versão documentada: **v713** (`BL.BUILD` em `game/js/config.js`). Jogo publicado em https://claude.ai/artifact/4LFiip85peJuMZmXMS2nSS.
 
 **Comece por aqui.** Esta pasta existe para dar contexto sem ler o projeto inteiro. Para uma tarefa, leia este README, abra só o arquivo da área da tarefa na tabela abaixo e, no código, ache o trecho com `grep` pelo nome de função ou constante citado no doc. Os arquivos grandes (`engine.js`, `ui.js`, `style.css`, com mais de 130 KB cada) nunca precisam ser lidos inteiros. Se o doc e o código discordarem, vale o código, e o doc deve ser corrigido na mesma tarefa.
 

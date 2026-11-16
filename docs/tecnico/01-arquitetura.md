@@ -16,6 +16,7 @@ index.html
  └─ js/ (carregados nesta ordem, todos com ?v=<BUILD>)
      config.js    → BL.BUILD, BL.CONFIG, BL.cleanTag
      accounts.js  → BL.Accounts
+     online.js    → BL.Online (v712)
      database.js  → BL.CHARACTERS, BL.CHAR_BY_ID, BL.ITEMS, BL.ITEM_BY_ID, BL.ITEM_SLOTS, BL.ITEM_RARITY_WEIGHT, BL.SKILLS
      players.js   → BL.util, BL.rarity…, BL.NATURES, BL.makePlayer/Starter/Enemy, BL.baseStat, BL.ev, BL.levelMult, BL.power, BL.teamPower, BL.goalkeeperFor, BL.goalChance, BL.stealChance
      engine.js    → BL.Match (classe), BL.FIELD, BL.spriteImg, BL.fieldSprite
@@ -39,6 +40,7 @@ Linhas longas: o tamanho em KB diz mais que o número de linhas. Nos arquivos gr
 | `game/css/style.css` | 1623 linhas, 155 KB | Todo o visual (paleta Blue Lock, painéis, cards, dock, pop-ups, landing, Wiki, Boss, Expedição, Diária). Modo `html.fit-screen` para telas largas. |
 | `game/js/config.js` | 448 linhas, 36 KB | `BL.BUILD` e todos os números de equilíbrio e tabelas em `BL.CONFIG` (ver [08](08-config-e-balanceamento.md)). |
 | `game/js/accounts.js` | 60 linhas | Contas locais e sessão (ver [06](06-contas-e-save.md)). |
+| `game/js/online.js` | 90 linhas | v712: conta online no Supabase, `BL.Online` (login, save na nuvem, Diamantes no servidor; ver [06 §6.7](06-contas-e-save.md#67-conta-online-supabase-v712)). |
 | `game/js/database.js` | 72 linhas | Personagens por posição, banco de itens, `BL.SKILLS` (vazio: habilidades ainda não criadas). |
 | `game/js/players.js` | 139 linhas | Geração de jogadores, raridade, nature, status efetivo, poder, fórmulas de gol e roubo (ver [03](03-jogadores.md)). |
 | `game/js/engine.js` | 1775 linhas, 130 KB | `BL.Match`: física, IA, duelos, stamina, IVs ([02](02-motor-e-ia.md)) e todo o desenho do campo, sprites e efeitos ([10](10-desenho-sprites-vfx.md)). Também `BL.spriteImg`/`BL.fieldSprite`. |

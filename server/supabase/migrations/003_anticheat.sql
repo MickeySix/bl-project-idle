@@ -1,0 +1,1 @@
+-- 003 anti-trapaça (v713): tabelas limites e alertas, profiles.banido e função save_game_v2. SQL aplicado igual ao da migração anticheat_v2 no Supabase (ver list_migrations).

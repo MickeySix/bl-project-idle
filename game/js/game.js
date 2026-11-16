@@ -23,7 +23,8 @@ window.BL = window.BL || {};
     // ---------- salvar ----------
     load() {
       this.state = null; this.match = null; this.enemy = null; this.log = [];
-      try { const raw = localStorage.getItem(this.saveKey()); if (raw) this.state = JSON.parse(raw); } catch (e) { this.state = null; }
+      if (this.online) { const R = this.remote; this.state = R && R.state ? R.state : null; this.rev = R ? R.rev || 0 : 0; this.diaBase = R ? R.diamonds || 0 : 0; if (this.state) this.state.diamonds = this.diaBase; } // v712: conta online, o save vem do servidor e os Diamantes também
+      else try { const raw = localStorage.getItem(this.saveKey()); if (raw) this.state = JSON.parse(raw); } catch (e) { this.state = null; }
       // v142: formações personalizadas (antigo quadro tático) foram apagadas
       const s = this.state;
       // v349 (Mickey): jogador sem sprite fica fora do jogo; vai para s.offRoster e volta sozinho quando o personagem ganhar sprite
@@ -52,7 +53,29 @@ window.BL = window.BL || {};
     // Cada conta tem o próprio save (contas locais do navegador, ver accounts.js)
     account: null,
     saveKey() { return this.account ? BL.Accounts.saveKey(this.account) : SAVE_KEY; },
-    save() { if (!this.state) return; try { localStorage.setItem(this.saveKey(), JSON.stringify(this.state)); } catch (e) { /* sem armazenamento: segue sem salvar */ } },
+    // v712 · conta online: online = true, remote = { state, rev, diamonds } lido do servidor ao entrar, rev = versão do save, diaBase = Diamantes que o servidor confirmou
+    online: false, remote: null, rev: 0, diaBase: 0,
+    cloudSave() { if (this._svT) return; this._svT = setTimeout(() => { this._svT = null; this.cloudFlush(); }, (C.ONLINE && C.ONLINE.saveGapMs) || 3000); },
+    cloudFlush(keepalive) {
+      const s = this.state; if (!this.online || !s || !BL.Online) return;
+      if (this._svFly) { this._svAgain = true; return; }
+      if (s.diamonds == null) s.diamonds = this.diaBase;
+      const sent = s.diamonds, spent = Math.max(0, this.diaBase - sent); // o servidor ignora o saldo do save: só desconta o que foi gasto
+      this._svFly = true;
+      BL.Online.save(s, this.rev, spent, keepalive).then((r) => {
+        this._svFly = false;
+        if (r.ok) {
+          this.rev = r.rev; this.diaBase = r.diamonds;
+          if (this.state === s) { const extra = Math.max(0, sent - s.diamonds); s.diamonds = Math.max(0, r.diamonds - extra); } // gasto feito enquanto salvava entra no próximo save; saldo inventado volta ao do servidor
+          this.emit("resources");
+        } else if (r.status === 409) { this.emit("cloudConflict"); return; }
+        else if (r.status === 422 || r.status === 403) { this.emit("cloudBlocked", r); return; } // v713: anti-trapaça do servidor (ou conta banida)
+        else { this._svAgain = true; if (!this._svWarn || Date.now() - this._svWarn > 30000) { this._svWarn = Date.now(); this.emit("toast", r.msg || "Não deu para salvar no servidor. Tentando de novo."); } }
+        if (this._svAgain) { this._svAgain = false; this.cloudSave(); }
+      });
+    },
+    saveNow() { if (!this.online) return this.save(); clearTimeout(this._svT); this._svT = null; this.cloudFlush(); }, // v712: grava já (sair, soneca)
+    save() { if (!this.state) return; if (this.online) return this.cloudSave(); try { localStorage.setItem(this.saveKey(), JSON.stringify(this.state)); } catch (e) { /* sem armazenamento: segue sem salvar */ } },
     reset() {
       try { localStorage.removeItem(this.saveKey()); } catch (e) {}
       this.state = null; this.match = null; this.enemy = null; this.log = [];
@@ -237,7 +260,9 @@ window.BL = window.BL || {};
       this.startMatch();
       return true;
     },
+    devOk() { return !this.online || ((C.ONLINE && C.ONLINE.devUsers) || []).includes(this.account); }, // v712: conta online só tem modo dev se estiver em C.ONLINE.devUsers
     setDev(on) {
+      if (on && !this.devOk()) { this.emit("toast", "Modo dev desligado nas contas online."); return; }
       this.dev = !!on;
       try { localStorage.setItem(DEV_KEY, on ? "1" : "0"); } catch (e) {}
       if (!on && !this.mapUnlocked(this.state.progress.map)) { this.switchMap(0); }
@@ -899,7 +924,8 @@ window.BL = window.BL || {};
       if (r.win && boss && C.SKILL_BOOK && Math.random() < C.SKILL_BOOK.boss) this.skBook(this.skRoll(C.SKILL_BOOK.wBoss)); // v623: Boss sempre dá um livro de habilidade: sub-item raro na vitória contra o Boss
       if (r.win && boss && Math.random() < C.CHAR_ITEM_BOSS) { const ci = U.pick(BL.CHAR_ITEM_LIST); s.inventory.push(ci.id); this.pushLog(`Item de personagem! ${ci.name} foi para a Mochila`, "steal"); } // v527
       if (r.win && boss && Math.random() < C.COFRE_BOSS) { s.inventory.push("tr-cofre-pres"); this.pushLog("Cofre do Presidente! Foi para a Mochila", "steal"); } // v527
-      if (r.win && C.DIAMOND_DROP && Math.random() < C.DIAMOND_DROP.win) { s.diamonds = (s.diamonds || 0) + C.DIAMOND_DROP.n; this.pushLog(`DIAMANTE! Caiu ${C.DIAMOND_DROP.n} Diamante na vitória`, "steal"); this.emit("toast", `◆ Caiu ${C.DIAMOND_DROP.n} Diamante na vitória!`); } // v680
+      if (r.win && this.online && BL.Online) BL.Online.drop().then((d) => { if (!d || !d.ok || !d.got || !this.state) return; this.diaBase += d.got; this.state.diamonds = (this.state.diamonds || 0) + d.got; this.pushLog(`DIAMANTE! Caiu ${d.got} Diamante na vitória`, "steal"); this.emit("toast", `◆ Caiu ${d.got} Diamante na vitória!`); this.emit("resources"); }); // v712: conta online, sorteio no servidor
+      else if (r.win && C.DIAMOND_DROP && Math.random() < C.DIAMOND_DROP.win) { s.diamonds = (s.diamonds || 0) + C.DIAMOND_DROP.n; this.pushLog(`DIAMANTE! Caiu ${C.DIAMOND_DROP.n} Diamante na vitória`, "steal"); this.emit("toast", `◆ Caiu ${C.DIAMOND_DROP.n} Diamante na vitória!`); } // v680
       if (r.win && Math.random() < C.CHEST_ON_WIN) this.addChest("azul"); // v265: baú azul só na vitória
       if (r.win && Math.random() < C.CHEST_EPIC_ON_WIN) this.addChest("epico"); // v380
       if (r.win && Math.random() < C.CHEST_LEG_ON_WIN) this.addChest("lendario");

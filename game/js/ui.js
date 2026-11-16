@@ -2632,7 +2632,7 @@
       $("audioReset").onclick = () => { try { localStorage.removeItem("blpi_sound"); localStorage.removeItem("blpi_music"); } catch (e) {} saveAudio(audioDefaults()); music(); SETTINGS_TABS[0].render(el); };
     } },
     { id: "conta", name: "Conta", render(el) {
-      el.innerHTML = `<h3 class="set-h">Conta</h3><p class="note">Conta: <b>${esc(G.account || "—")}</b>. O progresso fica salvo só neste navegador: exporte o save para guardar uma cópia ou levar para outro aparelho.</p><div class="reveal-actions"><button type="button" class="btn" id="svExport">Exportar save</button><button type="button" class="btn" id="svImport">Importar save</button><input type="file" id="svFile" accept=".json,.txt,application/json" hidden></div><div class="reveal-actions"><button type="button" class="btn" id="logoutBtn">Sair da conta</button><button type="button" class="btn del-open" id="delOpen">Excluir conta e histórico</button></div><div class="del-box" id="delBox" hidden><h4>Excluir conta e histórico</h4><p class="note">Isso apaga para sempre a conta <b>${esc(G.account || "—")}</b>, o elenco, Gold, itens e o histórico de partidas deste navegador. Para liberar o botão, digite o nome do seu manager: <b>${esc((G.state && G.state.name) || G.account || "")}</b></p><input type="text" id="delName" autocomplete="off" spellcheck="false" placeholder="Nome do manager"><div class="reveal-actions"><button type="button" class="btn" id="delCancel">Cancelar</button><button type="button" class="btn del-go" id="confirmReset" disabled>Confirmar exclusão</button></div></div>`;
+      el.innerHTML = `<h3 class="set-h">Conta</h3><p class="note">Conta: <b>${esc(G.account || "—")}</b>. ${G.online ? "Conta online: o progresso fica salvo no servidor e abre em qualquer aparelho." : "O progresso fica salvo só neste navegador: exporte o save para guardar uma cópia ou levar para outro aparelho."}</p><div class="reveal-actions"><button type="button" class="btn" id="svExport">Exportar save</button><button type="button" class="btn" id="svImport">Importar save</button><input type="file" id="svFile" accept=".json,.txt,application/json" hidden></div><div class="reveal-actions"><button type="button" class="btn" id="logoutBtn">Sair da conta</button><button type="button" class="btn del-open" id="delOpen">Excluir conta e histórico</button></div><div class="del-box" id="delBox" hidden><h4>Excluir conta e histórico</h4><p class="note">Isso apaga para sempre a conta <b>${esc(G.account || "—")}</b>, o elenco, Gold, itens e o histórico de partidas deste navegador. Para liberar o botão, digite o nome do seu manager: <b>${esc((G.state && G.state.name) || G.account || "")}</b></p><input type="text" id="delName" autocomplete="off" spellcheck="false" placeholder="Nome do manager"><div class="reveal-actions"><button type="button" class="btn" id="delCancel">Cancelar</button><button type="button" class="btn del-go" id="confirmReset" disabled>Confirmar exclusão</button></div></div>`;
       $("logoutBtn").onclick = logout;
       $("svExport").onclick = () => { // v680: cópia do save em arquivo
         G.save(); const txt = JSON.stringify({ blpi: 1, build: BL.BUILD, account: G.account || "", state: G.state });
@@ -2645,11 +2645,12 @@
         rd.onload = () => { let d = null; try { d = JSON.parse(rd.result); } catch (e) {} const st = d && d.blpi && d.state;
           if (!st || !Array.isArray(st.roster) || !st.roster.length || !st.progress || !st.account) return toast("Arquivo inválido: não é um save do BL Project Idle.");
           const b = $("svImport"); b.textContent = "Trocar o save atual? Clique de novo"; b.classList.add("del-go");
-          b.onclick = () => { G.state = st; G.save(); location.reload(); }; };
+          b.onclick = () => { if (G.online) { st.diamonds = G.state.diamonds; G.state = st; clearTimeout(G._svT); G._svT = null; G.cloudFlush(); setTimeout(() => location.reload(), 2500); return; } /* v712: na conta online os Diamantes não vêm do arquivo */ G.state = st; G.save(); location.reload(); }; };
         rd.readAsText(f); ev.target.value = "";
       };
       // v553 (Mickey): exclusão só libera digitando o nome do manager certinho
       const want = ((G.state && G.state.name) || G.account || "").trim(), box = $("delBox"), inp = $("delName"), go = $("confirmReset");
+      if (G.online) { $("delOpen").hidden = true; } // v712: conta online ainda não se exclui por aqui
       $("delOpen").onclick = () => { box.hidden = false; $("delOpen").hidden = true; inp.value = ""; go.disabled = true; inp.focus(); };
       $("delCancel").onclick = () => { box.hidden = true; $("delOpen").hidden = false; };
       inp.oninput = () => { go.disabled = !want || inp.value.trim() !== want; };
@@ -3612,9 +3613,17 @@
   let ljBusy = false;
   const ljWait = (ms) => new Promise((r) => setTimeout(r, ms));
   const ljImgs = (list) => Promise.all(list.map((src) => new Promise((r) => { const im = new Image(); im.onload = im.onerror = r; im.src = src; setTimeout(r, 6000); })));
-  async function enterAccount(user) {
+  async function enterAccount(user, online, importLocal) {
     if (ljBusy) return; ljBusy = true;
-    let has = false; try { has = !!localStorage.getItem(A.saveKey(user)); } catch (e) {}
+    G.online = !!online; G.remote = null;
+    if (online) { // v712: conta online, o save vem do servidor
+      $("ldAuth").hidden = true; $("ldLoad").hidden = false; $("ldLoad").classList.remove("out"); $("ljMsg").textContent = "Conectando ao servidor";
+      let R = null; try { R = await BL.Online.load(); } catch (e) {}
+      if (!R) { $("ldLoad").hidden = true; ljBusy = false; G.online = false; BL.Online.logout(); openAuth("login"); $("ldErr").textContent = "Não deu para abrir sua conta no servidor. Entre de novo."; return; }
+      if (!R.state && importLocal) { R.state = importLocal; R.state.diamonds = R.diamonds; } // conta local com o mesmo usuário e senha: o progresso sobe junto (sem os Diamantes)
+      G.remote = R;
+    }
+    let has = false; if (online) has = !!G.remote.state; else try { has = !!localStorage.getItem(A.saveKey(user)); } catch (e) {}
     $("ljTitle").textContent = has ? "Sua jornada continua" : "Sua jornada começa";
     const steps = [...$("ljSteps").children], fill = $("ljFill");
     steps.forEach((li) => (li.className = "")); fill.style.width = "0%";
@@ -3641,7 +3650,7 @@
   }
   function enterNow(user) {
     stopLoop(); clearTimeout(G.nextT);
-    G.account = user; A.setSession(user); music();
+    G.account = user; if (!G.online) A.setSession(user); else if (G.dev && !G.devOk()) G.dev = false; music();
     $("ldAuth").hidden = true; $("landing").hidden = true;
     if (G.load()) { renderAll(); boot(); if (G.state.sleep) { const r = G.sleepWake(); setTimeout(() => MODALS.sleepBack(r), 400); } } // v291: paga a soneca
     else { showStart(); $("startName").value = user.length >= 3 ? user : ""; checkStart(false); }
@@ -3653,8 +3662,10 @@
     $("ldSubmit").textContent = mode === "create" ? "Criar conta" : "Entrar e jogar";
     $("ldErr").textContent = ""; $("ldAuth").hidden = false; $("ldUser").focus();
   }
+  const onlineUp = () => !!(BL.Online && BL.Online.on && BL.Online.up !== false); // v712: servidor no ar (ou ainda testando)
+  const curUser = () => (onlineUp() ? BL.Online.user() : A.session()) || null; // v712: com servidor no ar, só vale a sessão online; contas locais só quando o servidor está fora
   function showLanding() {
-    const user = A.session();
+    const user = curUser();
     $("landing").hidden = false; $("ldAuth").hidden = true;
     if (!$("ldWelcome").dataset.fixed) $("ldWelcome").textContent = user ? `Entrar como ${user}` : "";
     if (!$("ldAbout").hidden) buildAbout();
@@ -3666,9 +3677,9 @@
     if (t.dataset.ldPage) return ldPage(t.dataset.ldPage, t.dataset.wk);
     if (t.dataset.ldSoon) { if (t.dataset.ldSoon !== "0") toast(`${t.dataset.ldSoon}: em breve`); return; }
     if (t.dataset.ldTab) return openAuth(t.dataset.ldTab);
-    const user = A.session();
+    const user = curUser(), onl = onlineUp();
     if (t.dataset.ldAuth === "account") return openAuth(user ? "login" : "create"); // v190 · Minha conta
-    if (t.dataset.ldAuth === "login" && user) return enterAccount(user); // já entrou neste navegador: vai direto
+    if (t.dataset.ldAuth === "login" && user) return enterAccount(user, onl); // já entrou neste navegador: vai direto
     openAuth(t.dataset.ldAuth);
   });
   // v109 · aba Sobre: troca o conteúdo da página inicial e monta as tabelas a partir do config
@@ -3824,24 +3835,41 @@
   $("wkItemCats").addEventListener("click", (e) => { const b = e.target.closest("[data-wk-icat]"); if (b) wkItems(b.dataset.wkIcat); });
   document.querySelector(".wk-tabs").addEventListener("click", (e) => { const b = e.target.closest("[data-wk-tab]"); if (b) wkTab(b.dataset.wkTab); });
   $("ldAuthClose").onclick = () => { $("ldAuth").hidden = true; };
-  $("ldForm").onsubmit = (e) => {
+  let ldSending = false;
+  $("ldForm").onsubmit = async (e) => {
     e.preventDefault();
+    if (ldSending) return;
     const u = $("ldUser").value, p = $("ldPass").value;
     if (ldMode === "create" && p !== $("ldPass2").value) { $("ldErr").textContent = "As senhas não são iguais."; return; }
+    const O = BL.Online;
+    if (O && O.on) { // v712: conta online (Supabase); sem servidor cai no modo local
+      ldSending = true; $("ldErr").textContent = "Conectando…";
+      if (O.up === null) await O.ping();
+      if (O.up) {
+        let r; try { r = ldMode === "create" ? await O.create(u, p) : await O.login(u, p); } catch (er) { r = { ok: false, msg: "Sem conexão com o servidor." }; }
+        ldSending = false;
+        if (!r.ok) { $("ldErr").textContent = r.msg || "Não deu para entrar."; return; }
+        let imp = null; if (ldMode === "create") { const loc = A.count() && A.login(u, p); if (loc && loc.ok) { try { imp = JSON.parse(localStorage.getItem(A.saveKey(loc.user)) || "null"); } catch (er) {} A.logout(); } }
+        $("ldPass").value = $("ldPass2").value = ""; $("ldErr").textContent = "";
+        return enterAccount(r.user, true, imp);
+      }
+      ldSending = false; $("ldErr").textContent = ""; toast("Servidor fora do ar: entrando no modo local, só neste navegador.");
+    }
     const r = ldMode === "create" ? A.create(u, p) : A.login(u, p);
     if (!r.ok) { $("ldErr").textContent = r.msg; return; }
     $("ldPass").value = $("ldPass2").value = "";
     enterAccount(r.user);
   };
   function sleepExit() { // v291: sai para a página inicial sem deslogar; a soneca é paga ao entrar de novo
-    if (G.state) G.save();
+    if (G.state) G.saveNow();
     stopLoop(); clearTimeout(G.nextT); closeModal();
     G.state = null; G.match = null; music();
     $("ldWelcome").dataset.fixed = "1"; $("ldWelcome").textContent = `Modo Soneca ativo para ${G.account}. Entre de novo quando quiser receber o XP.`; showLanding();
   }
   function logout() {
-    if (G.state) G.save();
+    if (G.state) G.saveNow();
     stopLoop(); clearTimeout(G.nextT); closeModal();
+    if (G.online && BL.Online) BL.Online.logout(); G.online = false; G.remote = null;
     G.account = null; G.state = null; G.match = null; A.logout(); music();
     $("ldWelcome").dataset.fixed = ""; showLanding();
   }
@@ -3851,6 +3879,12 @@
   // saves de antes das contas viram uma conta sem senha, e o jogador já entra nela
   const migrated = A.migrateLegacy();
   if (migrated) { A.setSession(migrated); $("ldWelcome").dataset.fixed = "1"; $("ldWelcome").textContent = `Seu jogo salvo agora está na conta "${migrated}". Clique em Continuar para jogar.`; }
+  // v712: conta online. Save mais novo em outra aba ou aparelho: recarrega para não sobrescrever
+  G.on("cloudBlocked", (r) => { toast((r && r.msg) || "Movimento estranho bloqueado."); stopLoop(); if (r && r.banned && BL.Online) BL.Online.logout(); setTimeout(() => location.reload(), 2500); }); // v713
+  G.on("cloudConflict", () => { toast("Seu save foi alterado em outra aba ou aparelho. Recarregando…"); stopLoop(); setTimeout(() => location.reload(), 1800); });
+  setInterval(() => { const st = G.state; if (G.online && st && (st.diamonds || 0) > G.diaBase) { st.diamonds = G.diaBase; renderTop(); } }, 400); // v712: saldo de Diamantes acima do confirmado pelo servidor volta na hora
+  window.addEventListener("pagehide", () => { if (G.online && G._svT) { clearTimeout(G._svT); G._svT = null; G.cloudFlush(true); } });
+  if (BL.Online && BL.Online.on) BL.Online.ping().then(() => showLanding());
   showLanding();
   BL.UI = { renderAll, toast };
 })();
