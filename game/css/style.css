@@ -5112,3 +5112,9 @@ html.fit-screen .app { padding-right: 120px; }
 /* v710 (Mickey): prêmio do baú mostra a arte do item que caiu e a moeda Gold do jogo */
 .cbx-ic svg, .cbx-ic img { width: 72px; height: 72px; image-rendering: pixelated; filter: drop-shadow(0 3px 4px rgba(0,0,0,.5)); }
 .cbx-item em u { border-radius: 0; box-shadow: none; background: url(../img/gold.png) center/contain no-repeat; filter: drop-shadow(0 1px 2px rgba(0,0,0,.45)); }
+
+/* v715: link do Discord na landing (Mickey) */
+.ld-links a.ld-dc { color: #aab4ff; }
+.ld-links a.ld-dc:hover { color: #fff; background: rgba(88,101,242,.25); }
+a.sb-acc.sb-dc { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-color: rgba(88,101,242,.7); color: #c9cfff; }
+a.sb-acc.sb-dc:hover { background: rgba(88,101,242,.22); color: #fff; }
