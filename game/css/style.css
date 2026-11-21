@@ -5118,3 +5118,22 @@ html.fit-screen .app { padding-right: 120px; }
 .ld-links a.ld-dc:hover { color: #fff; background: rgba(88,101,242,.25); }
 a.sb-acc.sb-dc { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border-color: rgba(88,101,242,.7); color: #c9cfff; }
 a.sb-acc.sb-dc:hover { background: rgba(88,101,242,.22); color: #fff; }
+
+/* v717 (Mickey): pular animações, bolinhas do dock, resumo ao voltar, Configurações > Jogo */
+.cbx.skip { cursor: pointer; }
+.cbx-skip { position: absolute; bottom: 22px; left: 0; right: 0; text-align: center; font: 700 12px var(--f-body); color: #9fb4e8; opacity: .8; }
+.cbx.boom .cbx-skip { display: none; }
+.ctx.skip { pointer-events: auto; cursor: pointer; }
+.ctx-skip { font: 700 11px var(--f-body); color: #c9d6ff; opacity: .85; }
+.ctx.ok .ctx-skip, .ctx.fail .ctx-skip { display: none; }
+.dock-menu .mi { position: relative; }
+.dk-dot { position: absolute; top: -2px; right: -4px; width: 12px; height: 12px; border-radius: 50%; background: #ff3f5e; box-shadow: 0 0 0 2px var(--abyss), 0 0 8px rgba(255,63,94,.8); }
+.aw-sum ul { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 6px; }
+.aw-sum li { display: grid; grid-template-columns: 110px 1fr auto; align-items: center; gap: 10px; min-height: 40px; padding: 6px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.aw-sum li b { font-family: var(--f-display); font-style: italic; font-weight: 900; text-transform: uppercase; color: #26D9FF; }
+.aw-sum li span { color: var(--mute); }
+.set-chk { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-weight: 700; cursor: pointer; }
+.set-tut { display: grid; gap: 6px; margin-top: 8px; }
+.set-tut-r { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; padding: 5px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.set-tut-r small { color: var(--mute); }
+@media (max-width: 560px) { .aw-sum li { grid-template-columns: 1fr auto; } .aw-sum li span { grid-column: 1; } .aw-sum li .btn { grid-row: 1 / span 2; grid-column: 2; } }
