@@ -3732,7 +3732,6 @@
   $("cmClans").addEventListener("click", (e) => { if (e.target.closest("[data-clan]")) toast("Entrar em clãs chega com o servidor"); });
   $("cmDiscord").addEventListener("click", () => { if (BL.DISCORD_URL) window.open(BL.DISCORD_URL, "_blank", "noopener"); else toast("Link do Discord em breve"); }); // v336
   function buildAbout() {
-    $("abAccounts").textContent = fmt(12430 + A.count());
     sbReveal();
     if ($("abRarity").dataset.done) return;
     const tot = C.RARITIES.reduce((a, r) => a + r.weight, 0);
@@ -3873,9 +3872,17 @@
     G.account = null; G.state = null; G.match = null; A.logout(); music();
     $("ldWelcome").dataset.fixed = ""; showLanding();
   }
-  // contadores de mentira (sem servidor ainda)
-  let online = 1284;
-  setInterval(() => { online = Math.max(900, online + Math.round((Math.random() - 0.5) * 24)); $("ldOnline").textContent = fmt(online); document.querySelectorAll(".js-online").forEach((e) => (e.textContent = fmt(online))); }, 4000);
+  // v716 (Mickey): só números reais, da função stats_publicos do servidor; sem resposta, os contadores ficam escondidos
+  async function realStats() {
+    const O = C.ONLINE; let st = null;
+    try { if (O && O.on && O.url && O.key) { const r = await fetch(`${O.url}/rest/v1/rpc/stats_publicos`, { method: "POST", headers: { apikey: O.key, Authorization: `Bearer ${O.key}`, "Content-Type": "application/json" }, body: "{}" }); if (r.ok) st = await r.json(); } } catch (e) { st = null; }
+    const ok = !!(st && typeof st.contas === "number" && typeof st.online === "number");
+    document.querySelectorAll(".ld-online, #sbLive, #cmOnline").forEach((e) => (e.hidden = !ok));
+    if (!ok) return;
+    $("ldOnline").textContent = fmt(st.online); $("abAccounts").textContent = fmt(st.contas);
+    document.querySelectorAll(".js-online").forEach((e) => (e.textContent = fmt(st.online)));
+  }
+  realStats(); setInterval(realStats, 60000);
   // saves de antes das contas viram uma conta sem senha, e o jogador já entra nela
   const migrated = A.migrateLegacy();
   if (migrated) { A.setSession(migrated); $("ldWelcome").dataset.fixed = "1"; $("ldWelcome").textContent = `Seu jogo salvo agora está na conta "${migrated}". Clique em Continuar para jogar.`; }

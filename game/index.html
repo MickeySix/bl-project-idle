@@ -2,11 +2,11 @@
 <title>BL PROJECT IDLE</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,800;1,800;1,900&family=Manrope:wght@400;500;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
-<link rel="stylesheet" href="css/style.css?v=715">
-<link rel="stylesheet" href="css/clan.css?v=715">
-<link rel="stylesheet" href="css/rmt.css?v=715">
-<link rel="stylesheet" href="css/gamepass.css?v=715">
-<link rel="stylesheet" href="css/pvp.css?v=715">
+<link rel="stylesheet" href="css/style.css?v=716">
+<link rel="stylesheet" href="css/clan.css?v=716">
+<link rel="stylesheet" href="css/rmt.css?v=716">
+<link rel="stylesheet" href="css/gamepass.css?v=716">
+<link rel="stylesheet" href="css/pvp.css?v=716">
 
 </head><body><div class="app" id="app">
   <header class="topbar">
@@ -178,7 +178,7 @@
       <a href="#" class="on" data-ld-page="home">Início</a><a href="#" data-ld-page="ranking">Ranking</a><a href="#" data-ld-page="wiki">Wiki</a><a href="#" data-ld-page="rmt">RMT</a><a href="#" data-ld-page="comunidade">Comunidade</a><a href="#" data-ld-page="termos">Termos</a><a href="https://discord.gg/4uZCr7ewfh" target="_blank" rel="noopener" class="ld-dc">Discord</a>
     </nav>
     <div class="ld-right">
-      <span class="ld-online"><i></i><b id="ldOnline">1.284</b><small>jogadores<br>online</small></span>
+      <span class="ld-online" hidden><i></i><b id="ldOnline">0</b><small>jogadores<br>online</small></span>
     </div>
   </header>
   <main class="ld-about sb" id="ldAbout">
@@ -187,10 +187,10 @@
       <h2 class="sb-title"><span>Desperte seu</span> <b>EGO</b></h2>
       <p class="sb-sub">Evolua sem limites</p>
       <p class="sb-lead">Um idle de futebol inspirado em Blue Lock. Treine, evolua, roube os melhores jogadores e prove que você é o número 1 do campo.</p>
-      <div class="sb-live"><span class="sb-on"><i></i>Online</span><span><b class="js-online">1.284</b> jogadores</span><span><b id="abAccounts">12.430</b> contas</span><span><b>8</b> servidores</span></div>
+      <div class="sb-live" id="sbLive" hidden><span class="sb-on"><i></i>Online</span><span><b class="js-online">0</b> jogando agora</span><span><b id="abAccounts">0</b> contas</span></div>
       <div class="sb-go"><button type="button" class="sb-btn" data-ld-auth="login" id="ldEnter">Entrar e jogar <i>›</i></button><button type="button" class="sb-acc" data-ld-auth="account">Minha conta</button><a class="sb-acc sb-dc" href="https://discord.gg/4uZCr7ewfh" target="_blank" rel="noopener">Discord</a></div>
       <p class="ld-date" id="ldWelcome"></p>
-      <p class="ld-beta"><b>Beta fechado</b>Seu progresso fica salvo só neste navegador (em Configurações dá para exportar o save). Feito para jogar no computador. Ranking, PvP, Guilda, Leilão e Chat ainda usam treinadores de teste. A compra de Diamantes e o RMT entram junto com o Pix.</p>
+      <p class="ld-beta"><b>Beta fechado</b>Crie sua conta e o progresso fica salvo online: entre com o mesmo usuário e senha em qualquer computador. Feito para jogar no computador. Ranking, PvP, Guilda, Leilão e Chat ainda usam treinadores de teste. A compra de Diamantes e o RMT entram junto com o Pix.</p>
     </header>
 
     <h3 class="sb-all"><span>BL</span> Tudo sobre o BL Project Idle</h3>
@@ -382,7 +382,7 @@
     </header>
     <div class="cm-stats">
       <button type="button" class="cm-stat" data-cm="amigos"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.5 4.5-6.5 8-6.5s7 2 8 6.5"/></svg></i><span><b id="cmFriends">0</b><small>Amigos</small><em>Chega com o servidor</em></span></button>
-      <button type="button" class="cm-stat" data-cm="chat"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 10h8M8 13h5"/></svg></i><span><b class="js-online">1.284</b><small>Online agora</small><em>Jogando agora</em></span></button>
+      <button type="button" class="cm-stat" data-cm="chat" id="cmOnline" hidden><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 10h8M8 13h5"/></svg></i><span><b class="js-online">0</b><small>Online agora</small><em>Jogando agora</em></span></button>
       <button type="button" class="cm-stat" data-cm="clas"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M12 8v8M8.5 11.5h7"/></svg></i><span><b id="cmClan">Sem clã</b><small>Meu clã</small><em>Ver clãs</em></span></button>
     </div>
     <div class="cm-grid">
@@ -506,11 +506,11 @@
       <button type="button" class="ld-x" id="ldAuthClose" aria-label="Fechar">✕</button>
       <div class="ld-tabs"><button type="button" data-ld-tab="create">Criar conta</button><button type="button" data-ld-tab="login">Entrar</button></div>
       <label class="name-field"><span>Usuário</span><input id="ldUser" type="text" maxlength="16" placeholder="3 a 16 caracteres" autocomplete="username"></label>
-      <label class="name-field"><span>Senha</span><input id="ldPass" type="password" maxlength="40" placeholder="Mínimo 4 caracteres" autocomplete="current-password"></label>
+      <label class="name-field"><span>Senha</span><input id="ldPass" type="password" maxlength="40" placeholder="Mínimo 6 caracteres" autocomplete="current-password"></label>
       <label class="name-field" id="ldPass2Wrap"><span>Confirmar senha</span><input id="ldPass2" type="password" maxlength="40" autocomplete="new-password"></label>
       <p class="ld-err" id="ldErr"></p>
       <button type="submit" class="btn btn-hot" id="ldSubmit">Criar conta</button>
-      <p class="note">Protótipo: a conta fica salva só neste navegador. Contas de verdade, que funcionam em qualquer aparelho, chegam quando o jogo tiver servidor.</p>
+      <p class="note">Sua conta fica salva online: entre com o mesmo usuário e senha em qualquer computador.</p>
     </form>
   </div>
 </div>
@@ -532,16 +532,16 @@
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
-<script src="js/config.js?v=715"></script>
-<script src="js/accounts.js?v=715"></script>
-<script src="js/online.js?v=715"></script>
-<script src="js/database.js?v=715"></script>
-<script src="js/players.js?v=715"></script>
-<script src="js/engine.js?v=715"></script>
-<script src="js/game.js?v=715"></script>
-<script src="js/ui.js?v=715"></script>
-<script src="js/clan.js?v=715"></script>
-<script src="js/rmt.js?v=715"></script>
-<script src="js/gamepass.js?v=715"></script>
-<script src="js/pvp.js?v=715"></script>
+<script src="js/config.js?v=716"></script>
+<script src="js/accounts.js?v=716"></script>
+<script src="js/online.js?v=716"></script>
+<script src="js/database.js?v=716"></script>
+<script src="js/players.js?v=716"></script>
+<script src="js/engine.js?v=716"></script>
+<script src="js/game.js?v=716"></script>
+<script src="js/ui.js?v=716"></script>
+<script src="js/clan.js?v=716"></script>
+<script src="js/rmt.js?v=716"></script>
+<script src="js/gamepass.js?v=716"></script>
+<script src="js/pvp.js?v=716"></script>
 </body></html>
