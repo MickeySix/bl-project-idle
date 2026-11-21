@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Painel BL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@1,800;1,900&family=Manrope:wght@400;600;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Painel de dev do BL PROJECT IDLE (Mickey, 2026-11-21). Tudo passa pela Edge Function "admin": login da conta + PIN em todo pedido. */
+:root { --abyss: #050914; --panel: #0b1430; --panel2: #0f1c42; --line: #1f3170; --ink: #e8eeff; --mute: #8fa0cc; --blue: #2b7bff; --cyan: #26D9FF; --gold: #ffd23f; --red: #ff3f5e; --green: #2ee06a; --f-display: "Barlow Condensed", sans-serif; --f-body: "Manrope", sans-serif; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 50% 0, #0d1d4d, var(--abyss) 60%); color: var(--ink); font: 14px/1.45 var(--f-body); }
+h1, h2 { font-family: var(--f-display); font-style: italic; font-weight: 900; text-transform: uppercase; margin: 0; letter-spacing: .02em; }
+h1 { font-size: 30px; } h1 b { color: var(--cyan); } h2 { font-size: 20px; margin-bottom: 10px; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+.gate { max-width: 380px; margin: 10vh auto 0; display: grid; gap: 12px; }
+label { display: grid; gap: 4px; font-weight: 700; color: var(--mute); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+input, select { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: #060d24; color: var(--ink); font: 600 15px var(--f-body); }
+input:focus { outline: 2px solid var(--cyan); border-color: transparent; }
+button { cursor: pointer; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel2); color: var(--ink); font: 800 13px var(--f-body); text-transform: uppercase; letter-spacing: .04em; }
+button:hover { border-color: var(--cyan); }
+button.hot { background: linear-gradient(180deg, #3d8bff, #1d5fe0); border-color: #3d8bff; }
+button.bad { background: #3a0e1a; border-color: var(--red); color: #ffd0d8; }
+button:disabled { opacity: .5; cursor: default; }
+.msg { min-height: 18px; color: var(--gold); font-weight: 700; }
+.msg.err { color: var(--red); }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.tabs button[aria-pressed="true"] { border-color: var(--cyan); color: var(--cyan); }
+.nums { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.num { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.num b { display: block; font: 900 italic 34px/1 var(--f-display); color: var(--cyan); }
+.num small { color: var(--mute); font-weight: 700; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--mute); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+td code { font: 500 11px "JetBrains Mono", monospace; color: var(--mute); word-break: break-all; }
+.scroll { overflow-x: auto; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
+.row > label { flex: 1 1 160px; }
+.pl { display: grid; gap: 12px; margin-top: 14px; }
+.pl-h { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.tag { padding: 2px 10px; border-radius: 99px; font-weight: 800; font-size: 12px; border: 1px solid var(--line); }
+.tag.ban { border-color: var(--red); color: var(--red); } .tag.ok { border-color: var(--green); color: var(--green); }
+.kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.kv div { background: var(--panel2); border-radius: 8px; padding: 8px 10px; } .kv small { display: block; color: var(--mute); font-size: 11px; } .kv b { font-size: 16px; }
+.acts { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
+.act { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 8px; }
+.act h3 { margin: 0; font: 900 italic 16px var(--f-display); text-transform: uppercase; color: var(--gold); }
+.note { color: var(--mute); font-size: 12px; margin: 0; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- 1. login da conta do jogo -->
+  <form class="card gate" id="gLogin" autocomplete="on">
+    <h1>Painel <b>BL</b></h1>
+    <p class="note">Área restrita. Entre com a sua conta do jogo.</p>
+    <label>Usuário<input id="lUser" autocomplete="username" required></label>
+    <label>Senha<input id="lPass" type="password" autocomplete="current-password" required></label>
+    <button class="hot" type="submit">Entrar</button>
+    <div class="msg" id="lMsg"></div>
+  </form>
+  <!-- 2. PIN (ou criar o PIN no primeiro acesso) -->
+  <form class="card gate" id="gPin" hidden autocomplete="off">
+    <h1>PIN</h1>
+    <p class="note" id="pNote">Digite o seu PIN de admin.</p>
+    <label>PIN<input id="pPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" required></label>
+    <label id="pPin2L" hidden>Repita o PIN<input id="pPin2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8"></label>
+    <button class="hot" type="submit" id="pBtn">Confirmar</button>
+    <div class="msg" id="pMsg"></div>
+  </form>
+  <!-- 3. painel -->
+  <div id="app" hidden>
+    <div class="top"><h1>Painel <b>BL</b></h1><div class="row"><span class="note" id="who"></span><button type="button" id="out">Sair</button></div></div>
+    <div class="tabs" id="tabs">
+      <button type="button" data-tab="resumo" aria-pressed="true">Resumo</button>
+      <button type="button" data-tab="jogador">Jogador</button>
+      <button type="button" data-tab="alertas">Alertas</button>
+      <button type="button" data-tab="limites">Limites</button>
+      <button type="button" data-tab="log">Registro</button>
+    </div>
+    <div class="msg" id="aMsg"></div>
+    <section class="card" id="view"></section>
+  </div>
+</div>
+<script src="js/config.js"></script>
+<script>
+(function () {
+  const O = (window.BL && BL.CONFIG && BL.CONFIG.ONLINE) || {}, URL = O.url, KEY = O.key;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const fmt = (n) => Number(n || 0).toLocaleString("pt-BR");
+  const when = (t) => (t ? new Date(t).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—");
+  // sessão só na memória da aba: recarregar a página pede login e PIN de novo; 15 min parado também
+  const S = { tok: null, pin: null, last: 0, tab: "resumo", user: "" };
+  const IDLE = 15 * 60 * 1000;
+  setInterval(() => { if (S.tok && Date.now() - S.last > IDLE) lock("Painel travado por 15 minutos sem uso."); }, 20000);
+  document.addEventListener("pointerdown", () => { S.last = Date.now(); });
+
+  function lock(m) { S.tok = S.pin = null; $("app").hidden = true; $("gPin").hidden = true; $("gLogin").hidden = false; $("lPass").value = ""; $("lMsg").textContent = m || ""; }
+  async function call(acao, extra) {
+    S.last = Date.now();
+    try {
+      const r = await fetch(`${URL}/functions/v1/admin`, { method: "POST", headers: { apikey: KEY, Authorization: `Bearer ${S.tok}`, "Content-Type": "application/json" }, body: JSON.stringify(Object.assign({ acao, pin: S.pin }, extra || {})) });
+      const d = await r.json().catch(() => ({}));
+      if (r.status === 401) { lock("Sessão expirada. Entre de novo."); return { ok: false }; }
+      if (d.pin && !d.ok && acao !== "entrar" && acao !== "criar_pin") { lock(d.msg); return { ok: false }; }
+      return d;
+    } catch (e) { return { ok: false, msg: "Sem conexão com o servidor." }; }
+  }
+  const say = (m, err) => { const el = $("aMsg"); el.textContent = m || ""; el.classList.toggle("err", !!err); };
+
+  $("gLogin").onsubmit = async (e) => {
+    e.preventDefault(); const u = $("lUser").value.trim().toLowerCase(), p = $("lPass").value; $("lMsg").textContent = "Entrando...";
+    if (!URL || !KEY) { $("lMsg").textContent = "Servidor não configurado."; return; }
+    try {
+      const r = await fetch(`${URL}/auth/v1/token?grant_type=password`, { method: "POST", headers: { apikey: KEY, "Content-Type": "application/json" }, body: JSON.stringify({ email: `${u}@jogador.blprojectidle.com`, password: p }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.access_token) { $("lMsg").textContent = "Usuário ou senha incorretos."; return; }
+      S.tok = d.access_token; S.user = u; S.last = Date.now(); $("lPass").value = "";
+      S.pin = ""; const t = await call("status"); // antes do PIN: descobre se é admin e se já tem PIN (não conta erro)
+      if (t.pin === "nao_admin") { lock("Esta conta não tem acesso ao painel."); return; }
+      const novo = t.pin === "sem_pin";
+      $("gLogin").hidden = true; $("gPin").hidden = false; $("pPin").value = ""; $("pPin2").value = ""; $("pMsg").textContent = "";
+      $("pPin2L").hidden = !novo; $("pPin2").required = novo; $("pBtn").textContent = novo ? "Criar PIN" : "Confirmar";
+      $("pNote").textContent = novo ? "Primeiro acesso: crie um PIN de 6 a 8 números. Ele não aparece em lugar nenhum, guarde bem." : "Digite o seu PIN de admin.";
+      $("gPin").dataset.novo = novo ? "1" : ""; $("pPin").focus();
+    } catch (err) { $("lMsg").textContent = "Sem conexão com o servidor."; }
+  };
+  $("gPin").onsubmit = async (e) => {
+    e.preventDefault(); const pin = $("pPin").value.trim(), novo = !!$("gPin").dataset.novo;
+    if (!/^[0-9]{6,8}$/.test(pin)) { $("pMsg").textContent = "O PIN tem de 6 a 8 números."; return; }
+    if (novo && pin !== $("pPin2").value.trim()) { $("pMsg").textContent = "Os dois PINs não são iguais."; return; }
+    S.pin = pin;
+    if (novo) { const c = await call("criar_pin"); if (!c.ok) { $("pMsg").textContent = c.msg || "Não deu para criar o PIN."; return; } }
+    const t = await call("entrar");
+    if (!t.ok) { $("pMsg").textContent = t.msg || "PIN errado."; if (t.pin === "travado") lock(t.msg); return; }
+    $("gPin").hidden = true; $("app").hidden = false; $("who").textContent = `Admin: ${t.nome}`; show("resumo");
+  };
+  $("out").onclick = () => lock("Você saiu do painel.");
+  $("tabs").onclick = (e) => { const b = e.target.closest("[data-tab]"); if (b) show(b.dataset.tab); };
+
+  async function show(tab) {
+    S.tab = tab; say(""); document.querySelectorAll("#tabs [data-tab]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.tab === tab)));
+    const v = $("view"); v.innerHTML = `<p class="note">Carregando...</p>`;
+    if (tab === "resumo") {
+      const d = await call("resumo"); if (!d.ok) return say(d.msg, true);
+      v.innerHTML = `<h2>Resumo</h2><div class="nums"><div class="num"><b>${fmt(d.contas)}</b><small>Contas criadas</small></div><div class="num"><b>${fmt(d.ativos24h)}</b><small>Salvaram nas últimas 24 h</small></div><div class="num"><b>${fmt(d.alertas24h)}</b><small>Saves barrados em 24 h</small></div><div class="num"><b>${fmt(d.banidos)}</b><small>Contas banidas</small></div></div>`;
+    } else if (tab === "jogador") {
+      v.innerHTML = `<h2>Jogador</h2><form class="row" id="fFind"><label>Usuário<input id="fUser" value="${esc(S.found || "")}" required></label><button class="hot" type="submit">Buscar</button></form><div id="pl"></div>`;
+      $("fFind").onsubmit = (e) => { e.preventDefault(); player($("fUser").value); };
+      if (S.found) player(S.found);
+    } else if (tab === "alertas") {
+      const d = await call("alertas", { n: 100 }); if (!d.ok) return say(d.msg, true);
+      v.innerHTML = `<h2>Alertas do anti-trapaça</h2><p class="note">Cada linha é um save recusado. Clique no usuário para abrir a ficha.</p><div class="scroll"><table><tr><th>Quando</th><th>Usuário</th><th>Tipo</th><th>Detalhe</th></tr>${d.lista.map((a) => `<tr><td>${when(a.em)}</td><td><button type="button" data-open-user="${esc(a.usuario)}">${esc(a.usuario || "?")}</button></td><td>${esc(a.tipo)}</td><td><code>${esc(JSON.stringify(a.detalhe)).slice(0, 400)}</code></td></tr>`).join("") || `<tr><td colspan="4">Nenhum alerta.</td></tr>`}</table></div>`;
+    } else if (tab === "limites") {
+      const d = await call("limites"); if (!d.ok) return say(d.msg, true);
+      v.innerHTML = `<h2>Limites do anti-trapaça</h2><p class="note">Números que o servidor usa para recusar saves impossíveis. Mude com cuidado: valor baixo demais barra jogador honesto.</p><div class="scroll"><table><tr><th>Chave</th><th>Valor</th><th>Nota</th><th></th></tr>${d.lista.map((l) => `<tr><td><code>${esc(l.chave)}</code></td><td><input style="width:120px" data-lim="${esc(l.chave)}" value="${esc(l.valor)}"></td><td>${esc(l.nota || "")}</td><td><button type="button" data-lim-save="${esc(l.chave)}">Salvar</button></td></tr>`).join("")}</table></div>`;
+    } else if (tab === "log") {
+      const d = await call("log"); if (!d.ok) return say(d.msg, true);
+      v.innerHTML = `<h2>Registro do painel</h2><p class="note">Tudo que os admins fizeram aqui.</p><div class="scroll"><table><tr><th>Quando</th><th>Admin</th><th>Ação</th><th>Alvo</th><th>Detalhe</th></tr>${d.lista.map((a) => `<tr><td>${when(a.em)}</td><td>${esc(a.admin_nome)}</td><td>${esc(a.acao)}</td><td>${esc(a.alvo || "")}</td><td><code>${esc(JSON.stringify(a.detalhe || {}))}</code></td></tr>`).join("") || `<tr><td colspan="5">Nada ainda.</td></tr>`}</table></div>`;
+    }
+  }
+  async function player(u) {
+    u = String(u || "").trim().toLowerCase(); if (!u) return; S.found = u;
+    const box = $("pl"); box.innerHTML = `<p class="note">Buscando...</p>`;
+    const d = await call("jogador", { usuario: u }); if (!d.ok) { box.innerHTML = ""; return say(d.msg, true); }
+    box.innerHTML = `<div class="pl"><div class="pl-h"><h2 style="margin:0">${esc(d.usuario)}</h2>${d.nome ? `<span class="note">Manager: ${esc(d.nome)}</span>` : ""}<span class="tag ${d.banido ? "ban" : "ok"}">${d.banido ? "Banido" : "Ativo"}</span>${d.vip ? `<span class="tag" style="color:var(--gold);border-color:var(--gold)">VIP</span>` : ""}</div>
+      <div class="kv"><div><small>Nível da conta</small><b>${fmt(d.nivel)}</b></div><div><small>Gold</small><b>${fmt(d.gold)}</b></div><div><small>Diamantes</small><b>${fmt(d.diamantes)}</b></div><div><small>Jogadores</small><b>${fmt(d.jogadores)}</b></div><div><small>Criada em</small><b>${when(d.criado)}</b></div><div><small>Último save</small><b>${when(d.visto)}</b></div></div>
+      ${d.melhores.length ? `<div class="scroll"><table><tr><th>Jogador</th><th>Raridade</th><th>Nível</th></tr>${d.melhores.map((p) => `<tr><td>${esc(p.nome)}</td><td>${esc(p.raridade)}${p.shiny ? " ✦" : ""}</td><td>${fmt(p.nivel)}</td></tr>`).join("")}</table></div>` : ""}
+      ${d.alertas.length ? `<p class="note">Últimos alertas: ${d.alertas.map((a) => `${esc(a.tipo)} (${when(a.em)})`).join(", ")}</p>` : `<p class="note">Sem alertas.</p>`}
+      <div class="acts">
+        <div class="act"><h3>Diamantes</h3><p class="note">Some ou tire (use número negativo para tirar). Fica no registro.</p><div class="row"><label>Quantidade<input id="aDia" type="number" step="1"></label><label>Motivo<input id="aDiaM" placeholder="ex.: compra Pix"></label></div><button type="button" class="hot" data-do="diamantes">Aplicar</button></div>
+        <div class="act"><h3>Gold</h3><p class="note">Troca o Gold do save. A aba aberta do jogador recarrega o save novo.</p><div class="row"><label>Novo Gold<input id="aGold" type="number" min="0" step="1" value="${esc(d.gold)}"></label><label>Motivo<input id="aGoldM"></label></div><button type="button" class="hot" data-do="gold">Aplicar</button></div>
+        <div class="act"><h3>${d.banido ? "Desbanir" : "Banir"}</h3><p class="note">${d.banido ? "Volta a salvar normalmente." : "A conta para de salvar progresso no servidor."}</p><label>Motivo<input id="aBanM"></label><button type="button" class="${d.banido ? "hot" : "bad"}" data-do="${d.banido ? "desbanir" : "banir"}" data-sure="0">${d.banido ? "Desbanir" : "Banir"}</button></div>
+      </div></div>`;
+  }
+  document.addEventListener("click", async (e) => {
+    const t = e.target.closest("button"); if (!t || $("app").hidden) return;
+    if (t.dataset.openUser) { S.found = t.dataset.openUser; return show("jogador"); }
+    if (t.dataset.limSave) { const k = t.dataset.limSave, inp = document.querySelector(`[data-lim="${CSS.escape(k)}"]`); const d = await call("limite", { chave: k, valor: Number(String(inp.value).replace(",", ".")) }); return say(d.ok ? `Limite ${k} salvo.` : d.msg, !d.ok); }
+    const a = t.dataset.do; if (!a) return;
+    if (t.dataset.sure === "0") { t.dataset.sure = "1"; t.textContent = "Clique de novo para confirmar"; return; } // banir pede 2 cliques
+    t.disabled = true; let d;
+    if (a === "diamantes") d = await call("diamantes", { usuario: S.found, delta: Number($("aDia").value), motivo: $("aDiaM").value });
+    else if (a === "gold") d = await call("gold", { usuario: S.found, valor: Number($("aGold").value), motivo: $("aGoldM").value });
+    else d = await call(a, { usuario: S.found, motivo: $("aBanM").value });
+    t.disabled = false; say(d.ok ? "Feito. Ficou no registro." : d.msg, !d.ok); if (d.ok) player(S.found);
+  });
+})();
+</script>
+</body>
+</html>
