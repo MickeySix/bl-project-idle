@@ -3,7 +3,7 @@
 window.BL = window.BL || {};
 
 // Versão do jogo: sobe a cada publicação. O index.html usa o mesmo número (?v=) para o navegador não usar arquivos velhos.
-BL.BUILD = "716";
+BL.BUILD = "717";
 // v336 · link do Discord oficial (aba Comunidade). Vazio = botão avisa "em breve"
 BL.DISCORD_URL = "https://discord.gg/4uZCr7ewfh"; // v715 (Mickey 2026-11-20)
 
@@ -1258,6 +1258,7 @@ BL.CONFIG = {
   STEAL_GIFT: { id: "pr-basica", n: 5 }, // v690 (Mickey): as +200 da v680 agora chegam pelo Correio de boas-vindas, junto com 10 Águas
   // v712 (Mickey): conta online no Supabase (js/online.js). on:false volta tudo para as contas locais. A chave é a pública (anon), pode ficar no código.
   // A chance de Diamante na vitória das contas online é sorteada no servidor (funções em /mnt/project-files/server); mudar DIAMOND_DROP aqui não muda lá.
+  AWAY: { min: 10 }, // v717: janela "Bem-vindo de volta" depois de ficar fora pelo menos isso (minutos)
   ONLINE: { on: true, url: "https://jzlvxvkqriojxwtzbqyu.supabase.co", key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6bHZ4dmtxcmlvanh3dHpicXl1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ1MjU5NDQsImV4cCI6MjExMDEwMTk0NH0.XV9UQ0ZIxf-oufVNj015KbvpuuEuWA09APQ0gKw4hDk", saveGapMs: 3000, devUsers: [] },
   DIAMOND_DROP: { win: 0.002, n: 1 }, // v687 (Mickey): 0,5% → 0,2% (1 em 500 vitórias). v680: chance mínima de 1 Diamante a cada vitória (qualquer fase); única fonte grátis
   // // v526: Propostas Básicas de presente (conta nova e saves antigos, uma vez), já equipadas

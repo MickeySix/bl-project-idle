@@ -32,6 +32,9 @@
     const t0 = Date.now(); (host || document.body).appendChild(el); setTimeout(close, 3600);
   }
 
+  // v717: animações já vistas (state.fxSeen) e "Pular sempre" (state.fxFast)
+  function fxSeen(k, v) { const s = G.state; if (!s) return false; const o = (s.fxSeen = s.fxSeen || {}); if (v) o[k] = 1; return !!o[k]; }
+  const fxFast = () => !!(G.state && G.state.fxFast);
   // v690 (Mickey): abrir baú com suspense. v692: segue o storyboard dele em 4 tempos: pulsa e treme, carrega energia (anéis fechando), explode e abre (a tampa voa), prêmio (item, raridade, Gold, "Toque para continuar"). list = resultados de G.openChest (1 ou vários: mostra o melhor item e o total)
   function chestBoom(list) {
     list = (list || []).filter(Boolean); if (!list.length) return;
@@ -43,9 +46,15 @@
       <div class="cbx-item"><small class="cbx-pz">Prêmio!</small><i class="cbx-ic">${BL.itemSvg(best.item) || CH_SLOT_IC[best.item.slot] || "🎁"}</i><b>${esc(best.item.name)}</b><span class="cbx-rar">${rar(best.item.rarity).name}</span><em><u></u>+${fmt(gold)} Gold</em></div></div>
       <small class="cbx-tap">Toque para continuar</small>`;
     const t0 = Date.now(), close = () => { if (!el.isConnected) return; el.classList.add("out"); setTimeout(() => el.remove(), 250); };
-    el.addEventListener("click", () => { if (Date.now() - t0 > 2400) close(); });
-    document.body.appendChild(el); setTimeout(() => el.classList.add("boom"), 1900); setTimeout(close, 6500);
-    setTimeout(() => { if (el.isConnected) fxSnd("bau-abre"); }, 750); // v693: o estouro do áudio (1,15 s) cai junto com a explosão
+    // v717 (Mickey): depois do primeiro baú, um toque pula a espera; "Abrir todos" (ou "Pular sempre" em Configurações > Jogo) já mostra o prêmio
+    const seen = fxSeen("bau"), now = seen && (list.length > 1 || fxFast()); let tb = now ? Date.now() : 0, tS = 0, tC = 0;
+    const boom = () => { if (tb && !now) return; clearTimeout(tS); tb = Date.now(); el.classList.add("boom"); clearTimeout(tC); tC = setTimeout(close, 4600); };
+    el.addEventListener("click", () => { if (el.classList.contains("boom")) { if (Date.now() - tb > 500) close(); } else if (seen) { fxSnd("bau-abre"); boom(); } else if (Date.now() - t0 > 2400) close(); });
+    if (seen) { el.classList.add("skip"); el.insertAdjacentHTML("beforeend", `<small class="cbx-skip">Toque para pular</small>`); }
+    document.body.appendChild(el); fxSeen("bau", 1);
+    if (now) { el.classList.add("boom"); fxSnd("bau-abre"); tC = setTimeout(close, 4600); return; }
+    setTimeout(() => { if (el.isConnected && !el.classList.contains("boom")) boom(); }, 1900);
+    tS = setTimeout(() => { if (el.isConnected) fxSnd("bau-abre"); }, 750); // v693: o estouro do áudio (1,15 s) cai junto com a explosão
   }
 
   // ---------- componentes ----------
@@ -1213,7 +1222,7 @@
     ["competicao", "Líderes", "Domine um ginásio e ganhe um benefício.", "img/menu/lideres.png", 'data-open="lideres"'],
     ["competicao", "Game Pass", "Metas da temporada e recompensas.", "img/menu/gamepass.png", 'data-gp-open'], /* v628: Game Pass em js/gamepass.js */
     ["sistema", "Modo Soneca", "XP com o jogo fechado.", "☾", 'data-open="sleep"'],
-    ["sistema", "Configurações", "Áudio e conta.", "img/engrenagem.png", 'data-open="settings"'],
+    ["sistema", "Configurações", "Áudio, conta, animações e tutorial.", "img/engrenagem.png", 'data-open="settings"'],
     ...(G.dev ? [["sistema", "Modo Dev", "Ferramentas de teste.", "🛠️", 'data-float="dev"']] : []),
   ];
   // v621 (Mickey, refs) · CASA DE LEILÕES: Comprar (preço fixo), Leilões (lances), Vender, Meus anúncios, Meus lances, Histórico
@@ -2256,6 +2265,7 @@
   const tutFichas = () => { const c = G.cons(); return Object.keys(C.FICHAS || {}).reduce((n, id) => n + (c[id] || 0), 0); }; // v695
   const tutSpare = () => G.state.roster.filter((p) => !G.isAway(p.uid)).length > G.map.size; // v693
   const TUT = { cur: null };
+  const TUT_NAMES = { inicio: "Primeiros passos", fases: "Fases e mapa", misericordia: "Regra da misericórdia", expedicao: "Expedição", habilidade: "Habilidades", ev: "Pontos de EV", energia: "Energia", vestiario: "Vestiário", bau: "Baús", missoes: "Missões", tecnico: "Técnico", fichas: "Fichas e Forja", soneca: "Soneca" }; // v717: nomes em Configurações > Jogo
   function tutEl() {
     let w = $("tut"); if (w) return w;
     w = document.createElement("div"); w.id = "tut"; w.hidden = true;
@@ -2659,6 +2669,19 @@
         const u = G.account; G.reset(); if (u) A.remove(u); logout();
       };
     } },
+    // v717 (Mickey): animações e tutorial. Rever uma ficha tira ela da lista de vistas: aparece de novo na próxima partida em que a situação dela acontecer
+    { id: "jogo", name: "Jogo", render(el) {
+      const s = G.state; if (!s) { el.innerHTML = ""; return; }
+      const t = tutSt(), off = !!t.done.all;
+      el.innerHTML = `<h3 class="set-h">Animações</h3><p class="note">Depois da primeira vez, um toque já pula a abertura do baú e o suspense do roubo. "Abrir todos" mostra o prêmio na hora.</p>
+        <label class="set-chk"><input type="checkbox" id="fxFastChk"${s.fxFast ? " checked" : ""}> Pular sempre (vai direto ao resultado)</label>
+        <h3 class="set-h" style="margin-top:14px">Tutorial</h3><p class="note">${off ? "O tutorial está <b>desligado</b>." : "O tutorial está <b>ligado</b>: as fichas aparecem durante a partida quando a situação acontece."} Toque em <b>Rever</b> para ver uma ficha de novo.</p>
+        <div class="reveal-actions"><button type="button" class="btn" id="tutToggle">${off ? "Ligar tutorial" : "Desligar tutorial"}</button></div>
+        <div class="set-tut">${TUT_SEQ.map((q) => `<div class="set-tut-r"><span>${esc(TUT_NAMES[q.id] || q.id)}</span><small>${t.done[q.id] ? "Vista" : "Ainda não"}</small><button type="button" class="btn" data-tut-again="${q.id}"${t.done[q.id] ? "" : " disabled"}>Rever</button></div>`).join("")}</div>`;
+      $("fxFastChk").onchange = (e) => { s.fxFast = !!e.target.checked; G.save(); };
+      $("tutToggle").onclick = () => { if (off) delete t.done.all; else t.done.all = 1; G.save(); toast(off ? "Tutorial ligado" : "Tutorial desligado"); SETTINGS_TABS.find((x) => x.id === "jogo").render(el); };
+      el.querySelectorAll("[data-tut-again]").forEach((b) => { b.onclick = () => { delete t.done[b.dataset.tutAgain]; delete t.done.all; G.save(); toast(`"${TUT_NAMES[b.dataset.tutAgain] || b.dataset.tutAgain}" aparece de novo na próxima partida em que fizer sentido`); SETTINGS_TABS.find((x) => x.id === "jogo").render(el); }; });
+    } },
   ];
   document.addEventListener("pointerdown", () => { sfx(); bgmReady = true; music(); }, { once: true });
   // v693: áudios enviados pelo Mickey (snd/contrato-roubou.mp3, contrato-rasgado.mp3, bau-abre.mp3), no canal "Roleta e menus"
@@ -2976,15 +2999,48 @@
     slMeas = null; G.sleepStart(); sleepExit();
   }, 250);
   // XP do Wildcard entra a cada 5 s; no primeiro tick depois de abrir o jogo avisa o que rendeu offline
-  let wcFirst = true;
+  let wcFirst = true, awayGain = null;
   setInterval(() => {
     if (!G.state) { wcFirst = true; return; }
     const r = G.wcTick(); renderWildcard();
-    if (wcFirst && r && r.min > 1 && (r.xp || r.items.length)) toast(`Wildcard: +${fmt(r.xp)} XP${r.items.length ? ` e ${r.items.length} item(ns)` : ""} enquanto você estava fora`, "gold");
+    if (wcFirst && r && r.min > 1 && (r.xp || r.items.length)) awayGain = r;
+    if (wcFirst && r && r.min > 1 && (r.xp || r.items.length) && (!G.state.seenAt || (Date.now() - G.state.seenAt) / 60000 < (C.AWAY || { min: 10 }).min)) toast(`Wildcard: +${fmt(r.xp)} XP${r.items.length ? ` e ${r.items.length} item(ns)` : ""} enquanto você estava fora`, "gold");
     wcFirst = false;
     if (currentModal === "Wildcard" && r && r.xp) MODALS.wildcardOld(); if (hub.open && r && r.xp) hubRender();
   }, 5000);
   G.on("wildcard", () => { renderWildcard(); hubRender(); });
+  // v717 (Mickey): bolinha no dock quando há algo para pegar (Diária, Expedição pronta, Boss terminado; o Game Pass já tem a sua)
+  const DOCK_DOTS = { diaria: () => G.dailyCan(), expedicao: () => G.expDone(), boss: () => G.bossDone() };
+  function dockDots() {
+    const on = !!G.state && $("landing").hidden;
+    Object.keys(DOCK_DOTS).forEach((k) => { const b = document.querySelector(`.dock-menu [data-open="${k}"] .mi`); if (!b) return; let d = b.querySelector(".dk-dot"); let v = false; try { v = on && DOCK_DOTS[k](); } catch (e) {}
+      if (!v) { if (d) d.remove(); return; } if (!d) { d = document.createElement("i"); d.className = "dk-dot"; b.appendChild(d); } });
+  }
+  setInterval(dockDots, 2000);
+  // v717 (Mickey): resumo ao voltar. state.seenAt guarda a última vez que o jogo estava aberto; fora há C.AWAY.min minutos ou mais, abre a janela com o que rendeu e o que está esperando
+  let awayChk = true;
+  function awaySummary(r) {
+    const s = G.state, A = C.AWAY || { min: 10 }, last = s.seenAt || 0, mins = last ? (Date.now() - last) / 60000 : 0;
+    if (!last || mins < A.min || G.dev || TUT.cur || currentModal || G.prematch || G.vest || rouletteLock) return false;
+    const gp = BL.GamePass && BL.GamePass.state() ? BL.GamePass.avail(BL.GamePass.state()) : 0, L = [];
+    if (r && (r.xp || r.items.length)) L.push(`<li><b>Wildcard</b><span>+${fmt(r.xp)} XP${r.items.length ? ` e ${r.items.length} item(ns)` : ""}</span></li>`);
+    if (G.expDone()) L.push(`<li><b>Expedição</b><span>Voltou com prêmios</span><button type="button" class="btn" data-open="expedicao">Resgatar</button></li>`);
+    if (G.bossDone()) L.push(`<li><b>Boss</b><span>A equipe terminou</span><button type="button" class="btn" data-open="boss">Ver baú</button></li>`);
+    if (G.dailyCan()) L.push(`<li><b>Diária</b><span>Prêmio de hoje liberado</span><button type="button" class="btn" data-open="diaria">Pegar</button></li>`);
+    if (G.mailPending()) L.push(`<li><b>Correio</b><span>${G.mailPending()} presente(s)</span><button type="button" class="btn" data-open="mail">Abrir</button></li>`);
+    if (gp) L.push(`<li><b>Game Pass</b><span>${gp} recompensa(s)</span><button type="button" class="btn" data-gp-open>Abrir</button></li>`);
+    if (!L.length) return false;
+    const h = Math.floor(mins / 60), m = Math.round(mins % 60), fora = h ? `${h} h${m ? ` ${m} min` : ""}` : `${m} min`;
+    openModal("Bem-vindo de volta", `<div class="aw-sum"><p class="note">Você ficou fora <b>${fora}</b>. Enquanto isso:</p><ul>${L.join("")}</ul><div class="reveal-actions"><button type="button" class="btn btn-hot" data-aw-ok>Continuar</button></div></div>`);
+    $("modalBody").querySelector("[data-aw-ok]").onclick = () => closeModal();
+    { const g = $("modalBody").querySelector("[data-gp-open]"); if (g) g.addEventListener("pointerdown", () => closeModal()); }
+    return true;
+  }
+  setInterval(() => {
+    const s = G.state; if (!s || !$("landing").hidden) { awayChk = true; return; }
+    if (awayChk) { awayChk = false; if (awaySummary(awayGain)) awayGain = null; }
+    s.seenAt = Date.now();
+  }, 6000);
   // ---------- v513 (Mickey): HUB do Wildcard, uma instância própria com a arte gerada (img/wildcard/) ----------
   // v519 (Mickey): tudo animado e espaçado: cada área abre numa cena própria; o jogador vai de esteira até a cápsula, respira lá dentro e o XP sobe ao vivo
   const hub = { open: false, area: null, plot: null, timer: null, busy: false, sig: "", lv: {}, stages: [], flash: null, fresh: null, bump: null, tick: 0 };
@@ -3301,16 +3357,19 @@
       <div class="ctx-aim"><i class="c"></i><i class="b tl"></i><i class="b tr"></i><i class="b bl"></i><i class="b br"></i><i class="ar t"></i><i class="ar r"></i><i class="ar d"></i><i class="ar l"></i></div>
       <b class="ctx-res">Contrato rasgado</b><small class="ctx-ch">Chance de roubo ${String(r.chance).replace(".", ",")}%${C.STEAL_PITY && r.chance < 100 ? ` · Sorte ${Math.min(r.pity0 || 0, C.STEAL_PITY.sure)}/${C.STEAL_PITY.sure}` : ""}</small>`; // v708: sorte do contrato
     host.appendChild(el);
-    const T = C.STEAL_SUSPENSE_MS, t0 = Date.now(), tk = setInterval(() => { const u = (Date.now() - t0) / T; if (u >= 1 || !el.isConnected) return clearInterval(tk); tick(1 - u * 0.8); }, 150);
-    setTimeout(() => { if (el.isConnected) el.classList.add("aim"); }, T * 0.45);
-    setTimeout(() => { if (el.isConnected) fxSnd(r.stolen ? "contrato-roubou" : "contrato-rasgado"); }, Math.max(0, T - 800)); // v693: áudios do Mickey, o pico (0,8 s) cai no resultado
-    setTimeout(() => {
-      if (!el.isConnected) return;
+    const seen = fxSeen("roubo"); fxSeen("roubo", 1); let done = false; if (seen) { el.classList.add("skip"); el.insertAdjacentHTML("beforeend", `<small class="ctx-skip">Toque para pular</small>`); } // v717 (Mickey): depois do primeiro roubo, um toque (ou "Pular sempre") vai direto ao resultado
+    const T = seen && fxFast() ? 350 : C.STEAL_SUSPENSE_MS, t0 = Date.now(), tk = setInterval(() => { const u = (Date.now() - t0) / T; if (u >= 1 || !el.isConnected) return clearInterval(tk); tick(1 - u * 0.8); }, 150);
+    const tA = setTimeout(() => { if (el.isConnected) el.classList.add("aim"); }, T * 0.45);
+    const tS = setTimeout(() => { if (el.isConnected) fxSnd(r.stolen ? "contrato-roubou" : "contrato-rasgado"); }, Math.max(0, T - 800)); // v693: áudios do Mickey, o pico (0,8 s) cai no resultado
+    if (seen) el.addEventListener("click", () => { if (done) return; clearTimeout(tA); clearTimeout(tR); clearInterval(tk); if (Date.now() - t0 < T - 800) { clearTimeout(tS); fxSnd(r.stolen ? "contrato-roubou" : "contrato-rasgado"); } res(); });
+    const tR = setTimeout(() => res(), T);
+    function res() {
+      if (!el.isConnected || done) return; done = true;
       el.classList.remove("aim"); el.classList.add(r.stolen ? "ok" : "fail");
       { const SP = C.STEAL_PITY, miss = (r.roll || 0) - (r.chance || 0), rs = el.querySelector(".ctx-res"); if (!r.stolen && SP && rs && miss >= 0 && miss < SP.near) rs.textContent = `Quase! Faltou ${String(Math.max(0.1, Math.round(miss * 10) / 10)).replace(".", ",")}%`; } // v708 (Mickey): quase vitória
       if (card) card.classList.add(r.stolen ? "rl-ok" : "rl-fail");
       setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 300); stealReveal(r); }, r.stolen ? 1300 : 1500);
-    }, T);
+    }
   }
   // v558 (Mickey): venceu o Mini Boss do Prólogo → jackpot de silhuetas de personagens; para no Comum roubado (garantido)
   function prologueRoulette(r) {
